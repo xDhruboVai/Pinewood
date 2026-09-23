@@ -4,6 +4,13 @@ Website, reservation system and staff dashboard for Pine Wood Café & Restaurant
 
 **Stack:** Next.js 16 (App Router, TypeScript) · Tailwind CSS v4 + shadcn-style components · Supabase (Postgres, Auth, Realtime, Edge Functions, pg_cron, pg_net, Vault) · Resend · Vercel
 
+## Setup guides
+
+- [Requirements Installation](docs/requirements-installation.md) - Python, project-local Node.js, and npm dependencies.
+- [Supabase Setup](docs/supabase-setup.md) - project linking, migrations, seed data, Vault, secrets, auth, and Edge Functions.
+- [Supabase and Website Connection](docs/supabase-website-connection.md) - environment variables and the application data flow.
+- [Website Initialization](docs/website-initialization.md) - local configuration, verification, and running the website.
+
 ## What's inside
 
 | Area | Where |

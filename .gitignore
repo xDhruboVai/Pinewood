@@ -17,3 +17,5 @@ supabase/.branches/
 .DS_Store
 Thumbs.db
 npm-debug.log*
+
+AGENTS.md
