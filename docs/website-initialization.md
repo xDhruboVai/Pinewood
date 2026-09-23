@@ -80,4 +80,4 @@ For Vercel deployment, configure the variables from `.env.example` in the Vercel
 - [ ] `npm run typecheck` passes.
 - [ ] `npm run build` passes.
 - [ ] The public site loads at `http://localhost:3000`.
-- [ ] Staff authentication is configured before using `/admin`.
+- [ ] Staff authentication is configured before using `/admin` a.
