@@ -1,3 +1,13 @@
+-- Pine Wood seed data
+-- Menu items and prices come from Pine Wood's published menu.
+-- Items marked "CONFIRM" below are assumptions the owners should verify in the admin/Table Editor:
+--   * seat counts per area, dietary tags (halal/vegetarian), chef specials,
+--   * variant price differences (the published menu lists one price per item, so deltas are 0),
+--   * sample add-ons and placeholder reviews.
+
+-- ---------------------------------------------------------------------------
+-- Seating areas (capacity pools) and tables — CONFIRM seat counts
+-- ---------------------------------------------------------------------------
 insert into public.areas (slug, name_en, name_bn, description_en, description_bn, sort_order) values
   ('fireplace', 'Fireplace Corner', 'ফায়ারপ্লেস কর্নার',
    'Low armchairs around the hearth. Best for slow evenings and winter dinners.',
@@ -23,6 +33,9 @@ from (values
 ) as t(area, label, seats)
 join public.areas a on a.slug = t.area;
 
+-- ---------------------------------------------------------------------------
+-- Opening hours (0 = Sunday). Friday opens at 11:00.
+-- ---------------------------------------------------------------------------
 insert into public.opening_hours (weekday, opens_at, closes_at) values
   (0, '10:00', '22:00'),
   (1, '10:00', '22:00'),
@@ -32,7 +45,9 @@ insert into public.opening_hours (weekday, opens_at, closes_at) values
   (5, '11:00', '22:00'),
   (6, '10:00', '22:00');
 
-
+-- ---------------------------------------------------------------------------
+-- Menu categories
+-- ---------------------------------------------------------------------------
 insert into public.menu_categories (slug, section, name_en, name_bn, sort_order) values
   ('finger-foods',     'starters',  'Finger Foods',        'ফিঙ্গার ফুড',          1),
   ('soup',             'starters',  'Soup',                'স্যুপ',                 2),
@@ -49,7 +64,9 @@ insert into public.menu_categories (slug, section, name_en, name_bn, sort_order)
   ('desserts',         'desserts',  'Desserts',            'ডেজার্ট',              30),
   ('freezers',         'beverages', 'Freezers',            'ফ্রিজার্স',            40);
 
-
+-- ---------------------------------------------------------------------------
+-- Menu items — CONFIRM dietary tags and chef specials
+-- ---------------------------------------------------------------------------
 insert into public.menu_items (category_id, slug, name_en, name_bn, description_en, description_bn, price, tags, is_featured, sort_order)
 select c.id, v.slug, v.name_en, v.name_bn, v.d_en, v.d_bn, v.price, v.tags::text[], v.featured, v.ord
 from (values
