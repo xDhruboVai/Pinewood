@@ -1,0 +1,4 @@
+# Python tooling only. The app's JavaScript dependencies live in package.json.
+# nodeenv installs Node.js + npm inside the Python virtualenv (.venv),
+# so nothing needs to be installed system-wide besides Python.
+nodeenv>=1.9.1

@@ -38,14 +38,59 @@ When a slot is full but some of that load is still `pending`, guests can join th
 
 ## Setup
 
-### 1. Install tools
+### 1. Install dependencies (virtual environment)
 
-- [Node.js 22 LTS](https://nodejs.org) (includes npm)
-- [Supabase CLI](https://supabase.com/docs/guides/cli) — `npm i -g supabase` works, or use `npx supabase`
+The only thing you need installed system-wide is **Python 3.9+** ([python.org](https://www.python.org/downloads/) — on Windows, tick "Add python.exe to PATH"). Everything else — Node.js, npm and the app's packages — is installed inside a project-local `.venv`.
+
+Create the virtualenv:
+
+```bash
+python -m venv .venv
+```
+
+Activate it — **Windows (Git Bash):**
+
+```bash
+source .venv/Scripts/activate
+```
+
+Activate it — **macOS / Linux:**
+
+```bash
+source .venv/bin/activate
+```
+
+Install the Python requirements (`nodeenv`):
+
+```bash
+pip install -r requirements.txt
+```
+
+Install Node.js LTS into the same virtualenv:
+
+```bash
+nodeenv -p --node=lts
+```
+
+Check that Node and npm now come from `.venv`:
+
+```bash
+node -v && npm -v
+```
+
+Install the app's packages (from `package.json` into `node_modules/`):
 
 ```bash
 npm install
 ```
+
+From now on, run `source .venv/Scripts/activate` (or `source .venv/bin/activate`) in each new terminal before using `npm` or `npx`. Leave the environment with:
+
+```bash
+deactivate
+```
+
+The Supabase CLI needs no global install; run it through npx, e.g. `npx supabase --version`.
 
 ### 2. Create the Supabase project
 
@@ -75,7 +120,7 @@ npx supabase db push
 ### 4. Edge Function
 
 ```bash
-copy supabase\.env.example supabase\.env
+cp supabase/.env.example supabase/.env
 ```
 
 Fill in `supabase/.env` (the `WEBHOOK_SECRET` must match the Vault secret; `RESERVATION_TOKEN_SECRET` must match the Next.js one), then:
@@ -104,7 +149,7 @@ Disable public sign-ups (**Authentication → Sign In / Providers → Allow new 
 ### 6. Run locally
 
 ```bash
-copy .env.example .env.local
+cp .env.example .env.local
 ```
 
 Fill in `.env.local`, then:
