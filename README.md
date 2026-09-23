@@ -54,12 +54,6 @@ Activate it — **Windows (Git Bash):**
 source .venv/Scripts/activate
 ```
 
-Activate it — **macOS / Linux:**
-
-```bash
-source .venv/bin/activate
-```
-
 Install the Python requirements (`nodeenv`):
 
 ```bash
