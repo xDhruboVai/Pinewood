@@ -69,7 +69,19 @@ After a successful build:
 npm run start
 ```
 
-For Vercel deployment, configure the variables from `.env.example` in the Vercel project, set `NEXT_PUBLIC_SITE_URL` to the production domain, and deploy. Keep the Edge Function secrets and `SITE_URL` aligned with the production website.
+For Vercel deployment, configure the variables from `.env.example` in the Vercel project, set `NEXT_PUBLIC_SITE_URL` to the production domain, and deploy. The Next.js app remains the frontend and keeps its Server Actions on Vercel.
+
+## 7. Deploy the Render backend
+
+The Render service lives in `backend/` and is described by `render.yaml`.
+
+1. Create a Render Blueprint from this repository.
+2. Set `SUPABASE_EMAIL_FUNCTION_URL` to `https://YOUR-PROJECT-REF.supabase.co/functions/v1/reservation-email`.
+3. Set `WEBHOOK_SECRET` to the same long random value used by the Supabase Edge Function and Vault.
+4. Confirm `https://YOUR-RENDER-SERVICE.onrender.com/health` returns `{ "ok": true }`.
+5. Update `pinewood_functions_url` in `supabase/setup/vault_secrets.sql` to the Render service URL and run the SQL once in Supabase.
+
+Render owns the webhook boundary; Supabase remains the database, authorization, booking state machine, realtime layer, scheduled jobs, and email worker. This avoids duplicating booking logic between platforms.
 
 ## Initialization checklist
 
@@ -80,4 +92,6 @@ For Vercel deployment, configure the variables from `.env.example` in the Vercel
 - [ ] `npm run typecheck` passes.
 - [ ] `npm run build` passes.
 - [ ] The public site loads at `http://localhost:3000`.
-- [ ] Staff authentication is configured before using `/admin` a.
+- [ ] Staff authentication is configured before using `/admin`.
+- [ ] The Render backend health check passes.
+- [ ] Supabase Vault points `pinewood_functions_url` at the Render service.

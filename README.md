@@ -2,7 +2,7 @@
 
 Website, reservation system and staff dashboard for Pine Wood Café & Restaurant, Dhanmondi.
 
-**Stack:** Next.js 16 (App Router, TypeScript) · Tailwind CSS v4 + shadcn-style components · Supabase (Postgres, Auth, Realtime, Edge Functions, pg_cron, pg_net, Vault) · Resend · Vercel
+**Stack:** Next.js 16 (App Router, TypeScript) · Tailwind CSS v4 + shadcn-style components · Supabase (Postgres, Auth, Realtime, RPCs, pg_cron, pg_net, Vault) · Render · Resend · Vercel
 
 ## Setup guides
 
@@ -21,6 +21,7 @@ Website, reservation system and staff dashboard for Pine Wood Café & Restaurant
 | Staff dashboard: overview, reservations, kitchen, availability, menu, analytics, staff | `src/app/admin` |
 | Database schema, booking engine, RLS, realtime, cron | `supabase/migrations` |
 | Seed data (real Pine Wood menu, areas, hours) | `supabase/seed.sql` |
+| Render webhook adapter and deployment service | `backend`, `render.yaml` |
 | Email sender (Resend, bilingual templates, signed links) | `supabase/functions/reservation-email` |
 
 ### Reservation lifecycle
@@ -32,7 +33,7 @@ Guest picks slot ──► slot_holds (10 min TTL, 1 per browser, 3 per network)
 reservations.status = pending  (holds seats for 24h or until the slot starts)
         │  └─► email "request received"
         ▼ staff call the guest, press Confirm in /admin/reservations
-status = confirmed ──► DB trigger ──► pg_net ──► Edge Function ──► Resend
+status = confirmed ──► DB trigger ──► pg_net ──► Render ──► Edge Function ──► Resend
         │                                   email with signed pre-order link
         ▼ guest opens link (JWT, no account) → pre-orders until 60 min before
 pre_orders ──► /admin/kitchen (realtime)
@@ -118,7 +119,7 @@ npx supabase db push
 1. Create an account at [resend.com](https://resend.com), add and verify your sending domain.
 2. Create an API key.
 
-### 4. Edge Function
+### 4. Email service
 
 ```bash
 cp supabase/.env.example supabase/.env
@@ -133,6 +134,8 @@ npx supabase secrets set --env-file supabase/.env
 ```bash
 npx supabase functions deploy reservation-email --no-verify-jwt
 ```
+
+The Supabase Edge Function remains the email worker and keeps the service-role database access. Deploy the Render adapter from this repository using the included `render.yaml`, then set `SUPABASE_EMAIL_FUNCTION_URL` to the deployed Supabase function URL and `WEBHOOK_SECRET` to the same value used by the Edge Function. Finally, run `supabase/setup/vault_secrets.sql` with the Render service URL so Postgres sends its webhook to Render.
 
 ### 5. Auth settings (staff login)
 
@@ -164,6 +167,10 @@ Open http://localhost:3000 and http://localhost:3000/admin.
 ### 7. Deploy to Vercel
 
 Import the repo in Vercel, add the four variables from `.env.example` (with `NEXT_PUBLIC_SITE_URL` set to the production domain), deploy, then attach your custom domain under **Settings → Domains**. Update `SITE_URL` in `supabase/.env` and re-run `supabase secrets set`.
+
+### 8. Deploy the backend to Render
+
+Create a Render Blueprint from this repository. Render will use `render.yaml` and deploy `backend` as a small Node service. Set `SUPABASE_EMAIL_FUNCTION_URL` and `WEBHOOK_SECRET` in the Render dashboard. The `/health` endpoint is public for Render health checks; `/ready` confirms both required secrets are configured.
 
 ## Before launch — content to confirm
 

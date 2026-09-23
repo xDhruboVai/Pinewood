@@ -4,13 +4,13 @@
 -- Never commit real values.
 
 select vault.create_secret(
-  'https://mtxvmhgxpsjkopwnnmiv.supabase.co/functions/v1',
+  'https://YOUR-RENDER-SERVICE.onrender.com',
   'pinewood_functions_url',
   'Base URL for Pine Wood Edge Functions'
 );
 
 select vault.create_secret(
-  'technobladeneverdies',
+  'replace-with-the-same-long-random-secret-used-by-render-and-the-edge-function',
   'pinewood_webhook_secret',
   'Shared secret sent as x-webhook-secret to reservation-email'
 );
