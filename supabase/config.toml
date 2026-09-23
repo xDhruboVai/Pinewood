@@ -1,0 +1,5 @@
+project_id = "pinewood"
+
+[functions.reservation-email]
+# Authenticated by the x-webhook-secret header sent from Postgres (pg_net), not a user JWT.
+verify_jwt = false
