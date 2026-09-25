@@ -206,6 +206,8 @@ export function HeroCarousel({
             {slides.map((s, i) => {
               const active = i === index;
               const long = s.name.length > 12;
+              // "৳999" → a smaller currency sign so the number carries the price
+              const [currency, amount] = s.price.startsWith("৳") ? ["৳", s.price.slice(1)] : ["", s.price];
               return (
                 <div
                   key={active ? `${s.key}-active` : s.key}
@@ -227,10 +229,23 @@ export function HeroCarousel({
                     {s.name}
                   </h2>
                   {s.description ? (
-                    <p className={cn("mt-6 max-w-sm text-lg leading-relaxed text-cream-100/90 [--d:90ms]", active && "hero-in")}>{s.description}</p>
+                    <p
+                      className={cn(
+                        "mt-5 max-w-[22rem] text-base leading-[1.7] text-pretty text-cream-100/75 sm:text-[1.0625rem] [--d:90ms]",
+                        active && "hero-in",
+                      )}
+                    >
+                      {s.description}
+                    </p>
                   ) : null}
                   {s.price ? (
-                    <p className={cn("hero-serif mt-7 text-5xl text-mustard-400 tabular-nums [--d:180ms]", active && "hero-in")}>{s.price}/-</p>
+                    <p className={cn("mt-8 [--d:180ms]", active && "hero-in")}>
+                      <span className="hero-serif text-[2.75rem] leading-none text-mustard-400 tabular-nums sm:text-5xl">
+                        {currency ? <span className="mr-1 text-[0.75em] font-medium">{currency}</span> : null}
+                        {amount}
+                        <span className="ml-0.5 text-[0.6em] font-normal text-mustard-400/70">/-</span>
+                      </span>
+                    </p>
                   ) : null}
                 </div>
               );
