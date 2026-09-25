@@ -83,7 +83,8 @@ export function MenuBrowser({ menu }: { menu: MenuCategory[] }) {
 
         {grouped.map(({ section, categories }) => (
           <section key={section} id={`section-${section}`} className="scroll-mt-36 py-12 sm:py-16">
-            <p className="label mb-6 text-mustard-400">{t.menu.sections[section]}</p>
+            {/* The section (Starters, Mains...) heads its categories: h1 page title > h2 section > h3 category. */}
+            <h2 className="label mb-6 text-mustard-400">{t.menu.sections[section]}</h2>
             <div className="gap-16 md:columns-2">
               {categories.map((cat) => (
                 <div key={cat.id} className="mb-12 break-inside-avoid">

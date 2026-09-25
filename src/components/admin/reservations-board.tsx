@@ -1,13 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
-import { setReservationStatus, setWaitlistStatus } from "@/actions/admin";
+import { resendEmail, setReservationStatus, setWaitlistStatus } from "@/actions/admin";
+import { PREORDER_LABEL } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
+import { parseBookingNotes } from "@/lib/booking-notes";
 import { createClient } from "@/lib/supabase/client";
-import { dhakaDate, formatDate, formatTime } from "@/lib/format";
+import { dhakaDate, formatDate, formatPrice, formatTime, isoToDhakaDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { AdminReservation, ReservationStatus, WaitlistEntry } from "@/lib/types";
 
@@ -40,15 +43,23 @@ export function ReservationsBoard({
   const [rows, setRows] = useState<AdminReservation[]>([]);
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
 
+  // Only the latest load may fill the board: flicking through days quickly, a slower answer for an
+  // earlier day is dropped instead of showing that day's bookings under the new date.
+  const loadRequest = useRef(0);
   const load = useCallback(async () => {
+    const request = ++loadRequest.current;
     const from = new Date(`${date}T00:00:00+06:00`).toISOString();
     const to = new Date(`${shiftDate(date, 1)}T00:00:00+06:00`).toISOString();
     const [res, wl] = await Promise.all([
       supabase.rpc("admin_list_reservations", { p_from: date, p_to: date }),
       supabase.from("waitlist_entries").select("*").gte("starts_at", from).lt("starts_at", to).order("starts_at"),
     ]);
-    if (res.error) toast.error(res.error.message);
+    if (request !== loadRequest.current) return;
+    // Say plainly that the list didn't load (not "no bookings"); the details go to the console.
+    if (res.error) console.error("admin_list_reservations failed", res.error);
+    setLoadFailed(Boolean(res.error));
     setRows((res.data ?? []) as AdminReservation[]);
     setWaitlist((wl.data ?? []) as WaitlistEntry[]);
     setLoading(false);
@@ -138,7 +149,7 @@ export function ReservationsBoard({
         </p>
         <div className="relative w-full sm:w-72">
           <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-ink-muted" strokeWidth={1.5} />
-          <Input placeholder="Name, phone or reference" value={query} onChange={(e) => setQuery(e.target.value)} className="h-11 rounded-sm pl-10 text-sm" />
+          <Input aria-label="Search bookings" placeholder="Name, phone or reference" value={query} onChange={(e) => setQuery(e.target.value)} className="h-11 rounded-sm pl-10 text-sm" />
         </div>
       </div>
 
@@ -149,8 +160,17 @@ export function ReservationsBoard({
             <div key={i} className="h-20 animate-pulse bg-surface/60" />
           ))}
         </div>
+      ) : loadFailed ? (
+        <div role="alert" className="border-b border-line py-16 text-center text-sm text-ink-muted">
+          <p className="text-danger">The bookings for this day couldn&apos;t be loaded.</p>
+          <button type="button" className="mt-3 font-semibold text-primary underline underline-offset-2" onClick={() => { setLoading(true); load(); }}>
+            Try again
+          </button>
+        </div>
       ) : visible.length === 0 ? (
-        <p className="border-b border-line py-16 text-center text-sm text-ink-muted">No bookings here.</p>
+        <p className="border-b border-line py-16 text-center text-sm text-ink-muted">
+          {rows.length > 0 ? `No bookings match "${query.trim()}".` : "No bookings for this day."}
+        </p>
       ) : (
         <ul>
           <li aria-hidden className={cn(ROW_GRID, "hidden py-3 lg:grid")}>
@@ -240,7 +260,29 @@ function ReservationRow({ r, onChanged }: { r: AdminReservation; onChanged: () =
     });
   };
 
+  const resend = () =>
+    startTransition(async () => {
+      const res = await resendEmail(r.id);
+      if (!res.ok) toast.error(res.error);
+      else {
+        toast.success("Email sent again");
+        onChanged();
+      }
+    });
+
   const cancelRequested = Boolean(r.cancel_requested_at) && ["pending", "confirmed"].includes(r.status);
+  // What the guest asked for. The branch is data on the booking's area; bookings made before branches
+  // existed only have it in the notes. Seating preference and the guest's note come from the notes.
+  const notes = parseBookingNotes(r.special_requests);
+  const branch = r.branch?.name ?? notes.branch;
+  const { seating, note } = notes;
+  const preOrder = r.pre_order && r.pre_order.status !== "cancelled" ? r.pre_order : null;
+  // The latest email didn't reach the guest: it failed, or got no answer for 15 minutes.
+  const mail = r.last_email;
+  const emailProblem =
+    ["pending", "confirmed"].includes(r.status) &&
+    !!mail &&
+    (mail.status === "failed" || (mail.status === "queued" && Date.now() - new Date(mail.at).getTime() > 15 * 60_000));
 
   return (
     <li className={cn("border-b border-line", cancelRequested ? "bg-red-50/70" : r.status === "pending" ? "bg-mustard-400/10" : undefined)}>
@@ -259,7 +301,7 @@ function ReservationRow({ r, onChanged }: { r: AdminReservation; onChanged: () =
           {r.phone.replace(/^\+88/, "")}
         </a>
 
-        <div className="col-start-2 flex items-center gap-4 lg:col-start-auto lg:justify-end">
+        <div className="col-start-2 flex flex-wrap items-center gap-x-4 gap-y-2 lg:col-start-auto lg:flex-nowrap lg:justify-end">
           {cancelRequested ? (
             <>
               <span className="text-xs font-semibold text-danger">Asked to cancel</span>
@@ -286,10 +328,56 @@ function ReservationRow({ r, onChanged }: { r: AdminReservation; onChanged: () =
                 Decline
               </button>
             </>
+          ) : r.status === "confirmed" ? (
+            <>
+              <StateLabel status={r.status} />
+              {/* For a guest who phones to cancel. Unlike Decline (a request we turn down), this cancels a
+                  booking we had confirmed; the seats are freed and the guest is emailed. */}
+              <button
+                type="button"
+                className={cn(SECONDARY, "hover:text-danger")}
+                disabled={pending}
+                onClick={() =>
+                  change(
+                    "cancelled",
+                    "Booking cancelled, guest emailed",
+                    `Cancel ${r.customer_name}'s confirmed booking at ${formatTime(r.starts_at)}? The table is freed and the guest gets a cancellation email. This can't be undone.`,
+                  )
+                }
+              >
+                Cancel booking
+              </button>
+            </>
           ) : (
             <StateLabel status={r.status} />
           )}
         </div>
+
+        {branch || seating || note || preOrder || emailProblem ? (
+          <div className="col-start-2 space-y-1.5 lg:col-[2/-1]">
+            {branch || seating ? (
+              <p className="text-[0.78rem] font-semibold tracking-[0.12em] text-ink uppercase">{[branch, seating].filter(Boolean).join(" · ")}</p>
+            ) : null}
+            {note ? <p className="max-w-3xl text-[0.95rem] leading-relaxed whitespace-pre-line text-ink-muted">“{note}”</p> : null}
+            {preOrder ? (
+              <Link
+                href={`/admin/kitchen?date=${isoToDhakaDate(r.starts_at)}`}
+                className="inline-block text-[0.9rem] font-medium text-primary tabular-nums hover:text-accent-ink"
+              >
+                Pre-order: {preOrder.item_count} {preOrder.item_count === 1 ? "item" : "items"} · {formatPrice(Number(preOrder.total))} ·{" "}
+                {PREORDER_LABEL[preOrder.status]}
+              </Link>
+            ) : null}
+            {emailProblem ? (
+              <p className="text-[0.85rem] text-danger">
+                The {mail!.kind.replace("_", " ")} email didn&apos;t reach the guest.{" "}
+                <button type="button" className="font-semibold underline underline-offset-2 disabled:opacity-50" disabled={pending} onClick={resend}>
+                  Resend
+                </button>
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </li>
   );

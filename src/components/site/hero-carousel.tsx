@@ -24,15 +24,21 @@ export function HeroCarousel({
   slides,
   labels,
   bn,
+  fontClassName,
 }: {
   slides: HeroSlideView[];
   labels: { title: string; accent: string; eyebrow: string; note: string };
   bn: boolean;
+  /** Defines the hero fonts' CSS variables (next/font classes from home-hero.tsx). */
+  fontClassName?: string;
 }) {
   const [index, setIndex] = useState(0);
   const [dir, setDir] = useState(1);
   const [paused, setPaused] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
+  // The other photos wait until the page has loaded, so they don't compete with the first one (the
+  // largest thing on the page); the first autoplay change is 7 seconds in.
+  const [pageLoaded, setPageLoaded] = useState(false);
   // While a finger or mouse drags the slide: sideways distance in px and the hero's width. Otherwise null.
   const [dragState, setDragState] = useState<{ dx: number; width: number } | null>(null);
   const drag = dragState?.dx ?? null;
@@ -67,6 +73,15 @@ export function HeroCarousel({
     const timer = setTimeout(next, AUTOPLAY_MS);
     return () => clearTimeout(timer);
   }, [autoplay, next, index]);
+  useEffect(() => {
+    if (document.readyState === "complete") {
+      setPageLoaded(true);
+      return;
+    }
+    const onLoad = () => setPageLoaded(true);
+    window.addEventListener("load", onLoad);
+    return () => window.removeEventListener("load", onLoad);
+  }, []);
   useEffect(() => {
     const onVisibility = () => setPaused(document.hidden);
     document.addEventListener("visibilitychange", onVisibility);
@@ -149,6 +164,7 @@ export function HeroCarousel({
         // Pulled up under the see-through header so the photo runs behind the navigation.
         "relative isolate -mt-20 touch-pan-y overflow-hidden bg-pine-800 text-cream-100 select-none focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-mustard-400",
         many && (drag === null ? "cursor-grab" : "cursor-grabbing"),
+        fontClassName,
       )}
     >
       <h1 className="sr-only">{labels.title}</h1>
@@ -162,20 +178,22 @@ export function HeroCarousel({
             style={{ opacity: photoOpacity(i) }}
             className={cn("absolute inset-0 motion-reduce:transition-none", drag === null && "transition-opacity duration-[1100ms] ease-[var(--ease-soft)]")}
           >
-            <Image
-              src={s.src}
-              alt={s.alt}
-              fill
-              priority={i === 0}
-              draggable={false}
-              sizes="(min-width: 1024px) 75vw, 100vw"
-              quality={85}
-              style={{ objectPosition: s.position }}
-              className={cn(
-                "pointer-events-none object-cover brightness-[0.85] transition-transform duration-[2400ms] ease-[var(--ease-soft)] motion-reduce:transition-none",
-                i === index && drag === null ? "scale-100" : "scale-[1.04]",
-              )}
-            />
+            {i === 0 || pageLoaded || i === index || i === incoming ? (
+              <Image
+                src={s.src}
+                alt={s.alt}
+                fill
+                priority={i === 0}
+                draggable={false}
+                sizes="(min-width: 1024px) 75vw, 100vw"
+                quality={85}
+                style={{ objectPosition: s.position }}
+                className={cn(
+                  "pointer-events-none object-cover brightness-[0.85] transition-transform duration-[2400ms] ease-[var(--ease-soft)] motion-reduce:transition-none",
+                  i === index && drag === null ? "scale-100" : "scale-[1.04]",
+                )}
+              />
+            ) : null}
           </div>
         ))}
       </div>

@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, Fira_Sans, Hind_Siliguri, Kaushan_Script, Montserrat, Noto_Serif_Bengali, Playfair_Display, Sacramento } from "next/font/google";
+import { Cormorant_Garamond, Fira_Sans, Hind_Siliguri, Kaushan_Script, Montserrat, Noto_Serif_Bengali } from "next/font/google";
+import localFont from "next/font/local";
 import { Toaster } from "sonner";
-import { ambianceScript } from "@/components/site/ambiance";
+import { ambianceScript } from "@/lib/ambiance";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getI18n } from "@/lib/i18n";
 import { SITE } from "@/lib/site";
@@ -10,17 +11,15 @@ import "./globals.css";
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
+  // No italic: nothing on the site is set in italic, and it was preloaded on every page.
   variable: "--font-cormorant",
   display: "swap",
 });
 const kaushan = Kaushan_Script({ subsets: ["latin"], weight: "400", variable: "--font-kaushan", display: "swap" });
-// Home hero and navigation only, matching Saalim's reference design: a heavy high-contrast serif for
-// the dish name and price, a thin handwritten script for the accent lines, and a wide-tracked sans.
-const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair", display: "swap" });
-const sacramento = Sacramento({ subsets: ["latin"], weight: "400", variable: "--font-sacramento", display: "swap" });
+// Navigation, matching Saalim's reference design: a wide-tracked sans. The home hero's serif and hand
+// script (Playfair, Sacramento) are loaded in home-hero.tsx, so only the home page downloads them.
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-montserrat", display: "swap" });
-const fira = Fira_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-fira", display: "swap" });
+const fira = Fira_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-fira", display: "swap" });
 const bnSerif = Noto_Serif_Bengali({
   subsets: ["bengali"],
   weight: ["400", "500", "600"],
@@ -34,6 +33,30 @@ const bnSans = Hind_Siliguri({
   variable: "--font-bn-sans",
   display: "swap",
   preload: false,
+});
+// The taka sign (৳) in prices, cut from the two Bangla fonts above (same glyph; src/app/fonts). They
+// come first in the font stacks, so English pages fetch ~1 KB for the sign instead of the whole Bangla
+// font (~270 KB on the home page). Bangla text still uses the full fonts.
+const takaSerif = localFont({
+  src: "./fonts/taka-serif.woff2",
+  weight: "100 900",
+  variable: "--font-taka-serif",
+  display: "swap",
+  preload: false,
+  adjustFontFallback: false,
+  declarations: [{ prop: "unicode-range", value: "U+09F3" }],
+});
+const takaSans = localFont({
+  src: [
+    { path: "./fonts/taka-sans-400.woff2", weight: "400" },
+    { path: "./fonts/taka-sans-500.woff2", weight: "500" },
+    { path: "./fonts/taka-sans-600.woff2", weight: "600" },
+  ],
+  variable: "--font-taka-sans",
+  display: "swap",
+  preload: false,
+  adjustFontFallback: false,
+  declarations: [{ prop: "unicode-range", value: "U+09F3" }],
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -67,7 +90,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       lang={locale}
       data-ambiance="day"
       suppressHydrationWarning
-      className={`${cormorant.variable} ${kaushan.variable} ${fira.variable} ${playfair.variable} ${sacramento.variable} ${montserrat.variable} ${bnSerif.variable} ${bnSans.variable}`}
+      className={`${cormorant.variable} ${kaushan.variable} ${fira.variable} ${montserrat.variable} ${takaSerif.variable} ${takaSans.variable} ${bnSerif.variable} ${bnSans.variable}`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: `document.documentElement.classList.add("js");${ambianceScript}` }} />

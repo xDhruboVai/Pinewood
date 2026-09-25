@@ -55,16 +55,6 @@ export function isoToDhakaTime(iso: string) {
   return new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(iso));
 }
 
-export function durationLabel(minutes: number, locale: Locale = "en") {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  if (locale === "bn") {
-    const nf = new Intl.NumberFormat("bn-BD");
-    return [h ? `${nf.format(h)} ঘণ্টা` : "", m ? `${nf.format(m)} মিনিট` : ""].filter(Boolean).join(" ");
-  }
-  return [h ? `${h}h` : "", m ? `${m}m` : ""].filter(Boolean).join(" ");
-}
-
 /** Normalises Bangladeshi numbers to E.164; passes through valid international numbers. */
 export function normalizePhone(raw: string): string | null {
   const cleaned = raw.replace(/[\s\-().]/g, "");

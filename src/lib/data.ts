@@ -1,7 +1,10 @@
 import "server-only";
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
+import { CACHE_TAGS, PUBLIC_REVALIDATE } from "@/lib/cache-tags";
+import { dhakaDate } from "@/lib/format";
 import { createPublicClient } from "@/lib/supabase/server";
-import type { Area, MenuCategory, MenuItem, OpeningHours, Review, ScheduleDay } from "@/lib/types";
+import type { Area, Branch, MenuCategory, OpeningHours, ScheduleDay } from "@/lib/types";
 
 const MENU_SELECT =
   "id, slug, section, name_en, name_bn, sort_order, menu_items(id, category_id, slug, name_en, name_bn, description_en, description_bn, price, image_url, tags, is_available, is_featured, sort_order, menu_item_variants(*), menu_item_addons(*))";
@@ -23,37 +26,73 @@ function sortMenu(categories: MenuCategory[]) {
     }));
 }
 
-export const getMenu = cache(async (): Promise<MenuCategory[]> => {
+// Public reads (menu, hours, branches, areas) are the same for every visitor and change rarely, so
+// they are kept in the Next data cache across requests instead of being read on every page view. Each
+// is tagged (CACHE_TAGS) and expired by the admin action that changes it; PUBLIC_REVALIDATE covers
+// edits made straight in Supabase. Errors are never cached. Live availability, holds and bookings
+// are not in here: the booking form asks the database every time (get_availability, hold_slot).
+
+async function loadMenu(): Promise<MenuCategory[]> {
   const { data, error } = await createPublicClient().from("menu_categories").select(MENU_SELECT);
   if (error) throw error;
   return sortMenu((data ?? []) as unknown as MenuCategory[]);
-});
+}
 
-export const getFeaturedItems = cache(async (): Promise<(MenuItem & { category_slug: string })[]> => {
-  const menu = await getMenu();
-  return menu.flatMap((c) => c.menu_items.filter((i) => i.is_featured).map((i) => ({ ...i, category_slug: c.slug })));
-});
+export const getMenu = cache(unstable_cache(loadMenu, ["menu"], { tags: [CACHE_TAGS.menu], revalidate: PUBLIC_REVALIDATE }));
 
-export const getReviews = cache(async (): Promise<Review[]> => {
-  const { data } = await createPublicClient()
-    .from("reviews")
-    .select("id, author_name, author_context, rating, body_en, body_bn")
-    .eq("is_published", true)
-    .order("sort_order");
-  return (data ?? []) as Review[];
-});
+/** The menu straight from the database, for the admin menu screen (never cached). */
+export const getMenuFresh = cache(loadMenu);
 
-export const getAreas = cache(async (): Promise<Area[]> => {
-  const { data } = await createPublicClient().from("areas").select("*").order("sort_order");
-  return (data ?? []) as Area[];
-});
+// These throw when the database can't be reached, like getMenu: the page then shows the branded
+// error screen (app/(site)/error.tsx) instead of quietly rendering with no hours or no tables.
+export const getAreas = cache(
+  unstable_cache(
+    async (): Promise<Area[]> => {
+      const { data, error } = await createPublicClient().from("areas").select("*").order("sort_order");
+      if (error) throw error;
+      return (data ?? []) as Area[];
+    },
+    ["areas"],
+    { tags: [CACHE_TAGS.areas], revalidate: PUBLIC_REVALIDATE },
+  ),
+);
 
-export const getSchedule = cache(async (days = 14): Promise<ScheduleDay[]> => {
-  const { data } = await createPublicClient().rpc("get_schedule", { p_days: days });
-  return (data ?? []) as ScheduleDay[];
-});
+export const getBranches = cache(
+  unstable_cache(
+    async (): Promise<Branch[]> => {
+      const { data, error } = await createPublicClient().from("branches").select("*").eq("is_active", true).order("sort_order");
+      if (error) throw error;
+      return (data ?? []) as Branch[];
+    },
+    ["branches"],
+    { tags: [CACHE_TAGS.branches], revalidate: PUBLIC_REVALIDATE },
+  ),
+);
 
-export const getOpeningHours = cache(async (): Promise<OpeningHours[]> => {
-  const { data } = await createPublicClient().from("opening_hours").select("*").order("weekday");
-  return (data ?? []) as OpeningHours[];
-});
+// The schedule starts today, so today's Dhaka date is part of the cache key: after midnight the
+// next request reads a new schedule instead of yesterday's.
+const scheduleFrom = unstable_cache(
+  async (days: number, branchId: string | null, _today: string): Promise<ScheduleDay[]> => {
+    const { data, error } = await createPublicClient().rpc("get_schedule", branchId ? { p_days: days, p_branch: branchId } : { p_days: days });
+    if (error) throw error;
+    return (data ?? []) as ScheduleDay[];
+  },
+  ["schedule"],
+  { tags: [CACHE_TAGS.hours], revalidate: PUBLIC_REVALIDATE },
+);
+
+/** Resolved hours for the next N days: one branch's own (branchId), or the hours every branch shares. */
+export const getSchedule = cache((days = 14, branchId: string | null = null): Promise<ScheduleDay[]> => scheduleFrom(days, branchId, dhakaDate()));
+
+/** Weekly hours: rows without a branch are shared by every branch; rows with one are that branch's own. */
+export const getOpeningHours = cache(
+  unstable_cache(
+    async (): Promise<OpeningHours[]> => {
+      const { data, error } = await createPublicClient().from("opening_hours").select("*").order("weekday");
+      if (error) throw error;
+      return (data ?? []) as OpeningHours[];
+    },
+    ["opening-hours"],
+    { tags: [CACHE_TAGS.hours], revalidate: PUBLIC_REVALIDATE },
+  ),
+);

@@ -1,3 +1,4 @@
+import { Playfair_Display, Sacramento } from "next/font/google";
 import { HeroCarousel, type HeroSlideView } from "@/components/site/hero-carousel";
 import { pick } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/i18n/en";
@@ -6,6 +7,12 @@ import { PHOTOS, type PhotoName } from "@/lib/site";
 import type { Locale, MenuCategory, ScheduleDay } from "@/lib/types";
 
 type Text = { en: string; bn: string };
+
+// The hero's own fonts, matching Saalim's reference design: a heavy high-contrast serif for the dish
+// name and price, and a thin handwritten script for the accent lines. Declared here rather than in the
+// root layout so only the home page downloads them.
+const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair", display: "swap" });
+const sacramento = Sacramento({ subsets: ["latin"], weight: "400", variable: "--font-sacramento", display: "swap" });
 
 /**
  * Dishes shown in the home hero, in order. `slug` is the dish's slug in the menu data; its name,
@@ -79,6 +86,7 @@ export function HomeHero({ locale, t, menu, today }: { locale: Locale; t: Dictio
 
   return (
     <HeroCarousel
+      fontClassName={`${playfair.variable} ${sacramento.variable}`}
       slides={slides}
       bn={locale === "bn"}
       labels={{

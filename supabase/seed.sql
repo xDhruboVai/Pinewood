@@ -4,9 +4,19 @@
 --   * seat counts per area, dietary tags (halal/vegetarian), chef specials,
 --   * variant price differences (the published menu lists one price per item, so deltas are 0),
 --   * sample add-ons and placeholder reviews.
+--
+-- What is real and what isn't (September 2026 audit, DATA-02). This file is for local development;
+-- nothing here is removed from a live database by editing it.
+--   REAL        menu categories, dish names and prices (from the published menu; the printed menu
+--               may differ). The three branches come from migration 20260926000100, not from here.
+--   PLACEHOLDER the 4 seating areas and 23 tables (invented in the first build; not Pinewood's rooms),
+--               the sample add-ons, the 3 reviews, and the "Espresso — Single/Double" naming.
+--   UNKNOWN     the opening hours below (probably the closed Road 12 outlet's) and every seat count.
+-- The areas deliberately get no branch, so they never become bookable seats at a real branch.
+-- Real areas, tables and hours per branch go in with supabase/setup/branch_setup.sql.
 
 -- ---------------------------------------------------------------------------
--- Seating areas (capacity pools) and tables — CONFIRM seat counts
+-- PLACEHOLDER seating areas and tables (invented; no branch) — replace with each branch's real rooms
 -- ---------------------------------------------------------------------------
 insert into public.areas (slug, name_en, name_bn, description_en, description_bn, sort_order) values
   ('fireplace', 'Fireplace Corner', 'ফায়ারপ্লেস কর্নার',
@@ -34,7 +44,7 @@ from (values
 join public.areas a on a.slug = t.area;
 
 -- ---------------------------------------------------------------------------
--- Opening hours (0 = Sunday). Friday opens at 11:00.
+-- Opening hours shared by every branch (0 = Sunday). Friday opens at 11:00. UNKNOWN: confirm per branch.
 -- ---------------------------------------------------------------------------
 insert into public.opening_hours (weekday, opens_at, closes_at) values
   (0, '10:00', '22:00'),

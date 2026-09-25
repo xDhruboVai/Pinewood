@@ -5,13 +5,7 @@ import { Moon, Sun, SunMoon } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 
-type Mode = "auto" | "day" | "evening";
-// Cream (day) is the default. The key was renamed from "pw-ambiance" so earlier saved choices reset to day.
-const KEY = "pw-ambiance-v2";
-const DEFAULT_MODE: Mode = "day";
-
-/** Runs before paint (inlined in <head>) so there's no flash of the wrong mood. */
-export const ambianceScript = `(function(){try{var d=document.documentElement;if(location.pathname.indexOf('/admin')===0){d.dataset.ambiance='day';return;}var m=localStorage.getItem('${KEY}')||'${DEFAULT_MODE}';var h=new Date().getHours();d.dataset.ambiance=m==='auto'?((h>=18||h<6)?'evening':'day'):m;d.dataset.ambianceMode=m;}catch(e){}})();`;
+import { AMBIANCE_KEY as KEY, DEFAULT_AMBIANCE as DEFAULT_MODE, type AmbianceMode as Mode } from "@/lib/ambiance";
 
 function resolve(mode: Mode): "day" | "evening" {
   if (mode !== "auto") return mode;

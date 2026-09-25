@@ -1,6 +1,8 @@
 // Frontend preview only (PW_PREVIEW=1): a tiny in-memory stand-in for the database so the admin
 // dashboard can be looked at without Supabase. Sample bookings are generated around today's date.
 // Nothing here is saved; writes are accepted and ignored. Never used in production builds.
+import { composeBookingNotes } from "@/lib/booking-notes";
+import { PREVIEW_BRANCHES } from "./branches";
 import { dhakaDate } from "@/lib/format";
 import type { AdminPreOrder, AdminReservation, Analytics, MenuCategory, ReservationStatus } from "@/lib/types";
 import sample from "./sample-data.json";
@@ -43,8 +45,12 @@ function preOrderItems(seed: number) {
   return picks.map((m, i) => ({ id: `poi-${seed}-${i}`, name: m.name_en, variant: null, addons: [], quantity: 1 + ((seed + i) % 2), notes: null, line_total: Number(m.price) * (1 + ((seed + i) % 2)) }));
 }
 
+// Sample bookings with a branch (the others stand for bookings made before branches existed).
+const sampleBranch = (i: number) => (i === 2 ? PREVIEW_BRANCHES[1] : i % 3 === 0 ? PREVIEW_BRANCHES[i % 2 ? 2 : 0] : null);
+
 export const RESERVATIONS: AdminReservation[] = PLAN.map(([offset, time, party, status, pre, cancel], i) => {
   const day = dhakaDate(offset);
+  const branch = sampleBranch(i);
   const starts = iso(day, time);
   const area = areas[i % areas.length];
   const items = pre ? preOrderItems(i) : [];
@@ -60,7 +66,14 @@ export const RESERVATIONS: AdminReservation[] = PLAN.map(([offset, time, party, 
     customer_name: GUESTS[i % GUESTS.length],
     phone: `+88017000000${String(10 + i)}`,
     email: `guest${i + 1}@example.com`,
-    special_requests: i === 2 ? "Outlet: Dhanmondi, Road 27\nBirthday, a quiet table please" : i % 3 === 0 ? "Outlet: Dhanmondi, Road 6" : null,
+    // Same format the booking form writes (lib/booking-notes); older sample bookings have none.
+    special_requests:
+      i === 2
+        ? composeBookingNotes({ branch: branch?.name_en, seating: "inside", note: "Birthday, a quiet table please" })
+        : branch
+          ? composeBookingNotes({ branch: branch.name_en, seating: i % 2 ? "outside" : "inside", note: "" })
+          : null,
+    branch: branch ? { id: branch.id, slug: branch.slug, name: branch.name_en } : null,
     locale: i % 4 === 1 ? "bn" : "en",
     expires_at: status === "pending" ? addMinutes(new Date().toISOString(), 60 * (3 + i)) : null,
     confirmed_at: ["confirmed", "seated", "completed"].includes(status) ? addMinutes(starts, -60 * 24) : null,
@@ -91,6 +104,7 @@ const PRE_ORDERS: AdminPreOrder[] = RESERVATIONS.filter((r) => r.pre_order).map(
     party_size: r.party_size,
     starts_at: r.starts_at,
     area: r.area.name,
+    branch: r.branch?.name ?? null,
     tables: r.tables.map((t) => t.label),
   },
   items: preOrderItems(Number(r.id.split("-")[1]) - 1),
@@ -143,6 +157,8 @@ const TABLES: Record<string, unknown[]> = {
   hours_overrides: [],
   opening_hours: sample.opening_hours,
   waitlist_entries: WAITLIST,
+  reservations: RESERVATIONS,
+  branches: PREVIEW_BRANCHES,
   staff_profiles: STAFF,
   menu_categories: sample.menu,
   reviews: sample.reviews,

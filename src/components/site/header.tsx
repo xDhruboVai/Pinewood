@@ -47,22 +47,23 @@ export function Header() {
           <Logo tone="light" priority />
         </Link>
 
-        <nav aria-label="Primary" className="hidden items-center gap-10 md:flex lg:gap-12">
+        {/* Tighter between 768 and 1023px so the links and the Reserve button fit on one line. */}
+        <nav aria-label="Primary" className="hidden items-center gap-5 md:flex lg:gap-12">
           {[{ href: "/", label: t.nav.home }, ...links].map((l) => (
             <Link
               key={l.href}
               href={l.href}
               aria-current={(l.href === "/" ? pathname === "/" : pathname.startsWith(l.href)) ? "page" : undefined}
-              className="font-nav relative py-2 text-[0.8rem] font-medium tracking-[0.16em] text-cream-50 uppercase transition-colors after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:bg-mustard-400 after:opacity-0 after:transition-opacity hover:text-mustard-300 aria-[current=page]:text-mustard-400 aria-[current=page]:after:opacity-100"
+              className="font-nav relative py-2 text-[0.8rem] font-medium tracking-[0.12em] whitespace-nowrap text-cream-50 uppercase lg:tracking-[0.16em] transition-colors after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:bg-mustard-400 after:opacity-0 after:transition-opacity hover:text-mustard-300 aria-[current=page]:text-mustard-400 aria-[current=page]:after:opacity-100"
             >
               {l.label}
             </Link>
           ))}
         </nav>
 
-        <div className="hidden items-center gap-6 md:flex">
+        <div className="hidden items-center gap-5 md:flex lg:gap-6">
           <LocaleToggle />
-          <Button asChild variant="mustard" className="font-nav h-12 px-7 text-[0.8rem] tracking-[0.16em]">
+          <Button asChild variant="mustard" className="font-nav h-12 px-5 text-[0.8rem] tracking-[0.16em] lg:px-7">
             <Link href="/reserve">{t.nav.reserve}</Link>
           </Button>
         </div>

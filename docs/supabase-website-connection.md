@@ -29,13 +29,30 @@ The Edge Function has its own secrets in `supabase/.env`; see [Supabase Setup](s
 - `src/lib/supabase/server.ts` provides the cookie-backed session client for staff authentication, a cookie-free public client for public reads, and the privileged client for validated server actions.
 - `src/lib/supabase/client.ts` provides the browser client for availability, realtime refresh, login, and admin board interactions.
 - `src/lib/supabase/proxy.ts` refreshes staff sessions for `/admin` routes through [`src/proxy.ts`](../src/proxy.ts).
-- `src/lib/data.ts` reads public menu, hours, area, review, and availability data on the server.
+- `src/lib/data.ts` reads public menu, hours, branch, and area data on the server (cached, see below). Availability is read by the booking form in the browser, never cached.
 
 ## Request and data flow
 
 ### Public pages
 
 Public pages use server-side reads through the publishable Supabase key. Public data remains subject to database permissions and should not be fetched with the service-role key from a browser component.
+
+#### Public data cache
+
+Pages are still rendered per request (the language comes from a cookie), but the public reads in `src/lib/data.ts` are kept in the Next.js data cache instead of querying Supabase on every visit.
+
+| Read | Tag | Kept for | Expired at once by |
+| --- | --- | --- | --- |
+| Menu (categories, dishes, sizes, add-ons) | `menu` | 5 min | `updateMenuItem` (admin Menu: availability, home page, price) |
+| Weekly hours, special hours, schedule | `hours` | 5 min | `updateOpeningHours`, `createHoursOverride`, `deleteHoursOverride` |
+| Areas | `areas` | 5 min | `toggleArea` |
+| Branches | `branches` | 5 min | (no admin action edits branches) |
+
+- The tags and the 5-minute limit are in `src/lib/cache-tags.ts`; the actions call `updateTag`, so the next page view after a change reads the database.
+- Worst case: a change made straight in Supabase (a new dish, a branch's areas or hours from `supabase/setup/branch_setup.sql`) shows on the site within 5 minutes. A change made through the admin screens shows on the next page view.
+- The schedule's cache key includes today's Dhaka date, so it never carries yesterday's hours past midnight.
+- The admin Menu screen reads the menu straight from the database (`getMenuFresh`), not the cached copy.
+- Not cached, by design: availability (`get_availability`), holds, bookings, pre-orders and everything in the staff dashboard. The guest's booking page reads the booking fresh; only its pre-order dish list is the cached menu, and the database checks each dish's availability and price when the pre-order is saved. Capacity is always checked by the database when seats are held (`hold_slot`), so a cached menu or area list can never cause an overbooking.
 
 ### Guest booking
 

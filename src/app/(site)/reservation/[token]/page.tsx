@@ -50,7 +50,14 @@ interface PreOrderView {
 }
 
 async function loadReservation(token: string) {
-  const verified = await verifyReservationToken(decodeURIComponent(token));
+  // A mangled link (bad percent-encoding) is just an invalid link, not a server error.
+  let raw: string;
+  try {
+    raw = decodeURIComponent(token);
+  } catch {
+    return null;
+  }
+  const verified = await verifyReservationToken(raw);
   if (!verified) return null;
   const { data } = await createAdminClient()
     .from("reservations")

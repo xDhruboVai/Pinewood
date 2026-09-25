@@ -55,16 +55,35 @@ function MenuItemRow({ item }: { item: MenuItem }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [price, setPrice] = useState(String(item.price));
+  const [savedPrice, setSavedPrice] = useState(Number(item.price));
+  const [priceInvalid, setPriceInvalid] = useState(false);
 
   const save = (patch: Parameters<typeof updateMenuItem>[1], msg: string) =>
     start(async () => {
       const res = await updateMenuItem(item.id, patch);
-      if (!res.ok) toast.error(res.error);
-      else {
+      if (!res.ok) {
+        toast.error(res.error);
+        if (patch.price !== undefined) setPrice(String(savedPrice));
+      } else {
+        if (patch.price !== undefined) setSavedPrice(patch.price);
         toast.success(msg);
         router.refresh();
       }
     });
+
+  // An empty or invalid price is never saved (it used to become ৳0): put the saved price back and say why.
+  const commitPrice = () => {
+    const raw = price.trim();
+    const value = Number(raw);
+    if (raw === "" || !Number.isFinite(value) || value <= 0) {
+      setPriceInvalid(true);
+      setPrice(String(savedPrice));
+      toast.error(`${item.name_en}: price not changed. Enter a price above ৳0.`);
+      return;
+    }
+    setPriceInvalid(false);
+    if (value !== savedPrice) save({ price: value }, "Price updated");
+  };
 
   return (
     <li className={cn("flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md px-3 py-2.5 text-sm", item.is_available ? "hover:bg-surface" : "bg-red-50")}>
@@ -90,18 +109,23 @@ function MenuItemRow({ item }: { item: MenuItem }) {
         className="flex items-center gap-1"
         onSubmit={(e) => {
           e.preventDefault();
-          save({ price: Number(price) }, "Price updated");
+          commitPrice();
         }}
       >
         <span className="text-ink-muted">৳</span>
         <Input
           type="number"
-          min={0}
-          step={1}
+          min={1}
+          step="any"
+          required
           value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          onBlur={() => Number(price) !== Number(item.price) && save({ price: Number(price) }, "Price updated")}
-          className="h-8 w-20 bg-transparent px-2 text-sm"
+          onChange={(e) => {
+            setPrice(e.target.value);
+            setPriceInvalid(false);
+          }}
+          onBlur={commitPrice}
+          aria-invalid={priceInvalid}
+          className={cn("h-8 w-20 bg-transparent px-2 text-sm", priceInvalid && "border-danger")}
           aria-label={`${item.name_en} price`}
         />
       </form>

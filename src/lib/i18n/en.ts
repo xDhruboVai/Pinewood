@@ -1,8 +1,8 @@
 const en = {
   meta: {
-    title: "Pinewood Cafe + Kitchen, Dhanmondi",
+    title: "Pinewood Cafe + Kitchen, Dhaka",
     description:
-      "Pinewood Cafe + Kitchen in Dhanmondi, Dhaka, since 2016. See the menu, opening hours and directions, and reserve a table online.",
+      "Pinewood Cafe + Kitchen in Dhanmondi and Banani, Dhaka, since 2016. See the menu, opening hours and directions, and reserve a table online.",
   },
   nav: {
     home: "Home",
@@ -34,7 +34,7 @@ const en = {
     minutes: "min",
   },
   home: {
-    eyebrow: "Café & Restaurant · Dhanmondi",
+    eyebrow: "Café & Restaurant · Dhaka",
     titleA: "Pinewood",
     titleB: "Cafe + Kitchen",
     ctaReserve: "Reserve a table",
@@ -69,7 +69,7 @@ const en = {
     reviewsCta: "See all reviews on Google Maps",
     teamEyebrow: "Our team",
     teamTitle: "The people in the kitchen and on the floor",
-    visitTitle: "Find us in Dhanmondi.",
+    visitTitle: "Find us in Dhanmondi and Banani.",
     visitCta: "Hours & directions",
   },
   menu: {
@@ -102,7 +102,7 @@ const en = {
   ambiance: {
     eyebrow: "Photos",
     title: "Inside Pinewood",
-    lede: "Photos from our café in Dhanmondi.",
+    lede: "Photos from inside Pinewood.",
     reserveTitle: "Want to sit here?",
     reserveCta: "Reserve a table",
   },
@@ -167,10 +167,15 @@ const en = {
     hoursFor: (name: string) => `Opening hours · ${name}`,
     specialHours: "Special hours",
     closed: "Closed",
-    mapTitle: "Map showing Pinewood in Dhanmondi",
+    mapTitle: "Map showing Pinewood",
     weekdays: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
     upcoming: "Next 7 days",
     today: "Today",
+    seatingLabel: "Seating",
+    todayHours: (hours: string) => `Today ${hours}`,
+    hoursShared: "The same hours at every branch.",
+    hoursMostBranches: "Every branch, unless listed below.",
+    hoursOwn: (name: string) => `${name} has its own hours`,
   },
   reserve: {
     eyebrow: "Reservations",
@@ -227,6 +232,8 @@ const en = {
     anyArea: "Any area",
     live: "Live availability",
     noSlots: "No online slots for this day. Try another date or call us.",
+    timesError: "We couldn't load the free times.",
+    timesRetry: "Try again",
     closedDay: "We're closed on this day.",
     seatsLeft: (n: number) => `${n} seats left`,
     slotsOpen: (n: number) => `${n} open ${n === 1 ? "time" : "times"}`,
@@ -342,7 +349,7 @@ const en = {
   about: {
     eyebrow: "About",
     title: "About Pinewood",
-    lede: "Pinewood Cafe + Kitchen is a café and restaurant in Dhaka. We started in 2016.",
+    lede: "Pinewood Cafe + Kitchen is a café and restaurant in Dhaka. We started in 2016 and now have three branches: Dhanmondi Road 6, Dhanmondi Road 27 and Banani.",
     menuTitle: "What we serve",
     menuBody: "Set menus, chicken and seafood plates, pasta, noodles, burgers and sandwiches, soups and salads, coffee, cakes and cold drinks.",
     roomsTitle: "Our rooms",
@@ -358,8 +365,8 @@ const en = {
     contactTitle: "Contact",
     outletsTitle: "Outlets",
     since: "Since 2016",
-    tagline: "Café and restaurant in Dhanmondi, Dhaka. Since 2016.",
-    hours: "Daily 10am – 10pm · Fridays from 11am",
+    tagline: "Café and restaurant in Dhanmondi and Banani, Dhaka.",
+    hours: "Opening hours",
     privacy: "Privacy",
     staff: "Staff login",
     rights: "All rights reserved.",
@@ -374,6 +381,12 @@ const en = {
       "Staff may see how many times you've visited so we can welcome regulars and manage no-shows fairly.",
       "To see, correct or delete the information we hold about you, call us or ask any member of our team.",
     ],
+  },
+  errorPage: {
+    title: "Something went wrong.",
+    body: "We're having trouble loading this page. Please try again.",
+    retry: "Try again",
+    home: "Return home",
   },
   notFound: {
     title: "Page not found",

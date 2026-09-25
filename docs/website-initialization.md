@@ -48,7 +48,13 @@ Build the production bundle:
 npm run build
 ```
 
-This project currently has no configured lint or test scripts, so these are the minimum application checks.
+Lint and the automated tests (none of them need the real Supabase project):
+
+```bash
+npm run check
+```
+
+`npm run check` runs the typecheck, lint, unit tests and database tests. Browser tests: `npm run test:e2e`. See [Testing and Code Quality](testing.md).
 
 ## 5. Start the development server
 
@@ -79,7 +85,7 @@ The Render service lives in `backend/` and is described by `render.yaml`.
 2. Set `SUPABASE_EMAIL_FUNCTION_URL` to `https://YOUR-PROJECT-REF.supabase.co/functions/v1/reservation-email`.
 3. Set `WEBHOOK_SECRET` to the same long random value used by the Supabase Edge Function and Vault.
 4. Confirm `https://YOUR-RENDER-SERVICE.onrender.com/health` returns `{ "ok": true }`.
-5. Update `pinewood_functions_url` in `supabase/setup/vault_secrets.sql` to the Render service URL and run the SQL once in Supabase.
+5. Set the Vault secret `pinewood_functions_url` to the Render service URL: paste `supabase/setup/vault_secrets.sql` into the Supabase SQL Editor and fill in the values there (or use the `vault.update_secret` lines at its end). Do not save real values in the tracked file.
 
 Render owns the webhook boundary; Supabase remains the database, authorization, booking state machine, realtime layer, scheduled jobs, and email worker. This avoids duplicating booking logic between platforms.
 

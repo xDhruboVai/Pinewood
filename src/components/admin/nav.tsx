@@ -6,9 +6,10 @@ import { signOut } from "@/actions/admin";
 import { Logo } from "@/components/site/logo";
 import type { StaffRole } from "@/lib/types";
 
-// Staff only need two screens: bookings and the menu.
+// Staff screens: bookings, the kitchen's pre-orders, and the menu (managers).
 const LINKS = [
   { href: "/admin/reservations", label: "Reservations", manager: false },
+  { href: "/admin/kitchen", label: "Kitchen", manager: false },
   { href: "/admin/menu", label: "Menu", manager: true },
 ];
 
@@ -19,12 +20,21 @@ export function AdminNav({ name, role }: { name: string; role: StaffRole }) {
 
   return (
     <header className="grain grain-dark sticky top-0 z-40 bg-pine-700 text-cream-100">
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-6 px-5 sm:px-8 lg:px-12">
-        <Link href="/admin/reservations" className="flex shrink-0 items-center">
+      {/* Phones: the links get their own row under the logo so three of them fit. */}
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 px-5 pt-3 pb-1 sm:h-20 sm:flex-nowrap sm:px-8 sm:py-0 lg:px-12">
+        <Link href="/admin/reservations" className="order-1 flex shrink-0 items-center">
           <Logo tone="light" subline="Admin" />
         </Link>
 
-        <nav aria-label="Admin" className="flex items-center gap-6 sm:gap-10 lg:gap-12">
+        {/* Below 768px: Sign out next to the logo (phones) or at the end of the row (small tablets),
+            so a shared device can always be signed out. From 768px it's in the full set on the right. */}
+        <form action={signOut} className="order-2 sm:order-3 md:hidden">
+          <button type="submit" className="py-2 text-sm text-cream-100/80 hover:text-mustard-300">
+            Sign out
+          </button>
+        </form>
+
+        <nav aria-label="Admin" className="order-3 flex w-full items-center gap-6 sm:order-2 sm:w-auto sm:gap-10 lg:gap-12">
           {links.map((l) => (
             <Link
               key={l.href}
@@ -37,11 +47,11 @@ export function AdminNav({ name, role }: { name: string; role: StaffRole }) {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-6 text-sm md:flex">
-          <span className="text-cream-100/70">{name}</span>
-          <a href="/" className="text-cream-100/70 hover:text-mustard-300">
+        <div className="order-4 hidden items-center gap-6 text-sm md:flex">
+          <span className="hidden text-cream-100/70 lg:inline">{name}</span>
+          <Link href="/" className="text-cream-100/70 hover:text-mustard-300">
             View the website
-          </a>
+          </Link>
           <form action={signOut}>
             <button type="submit" className="text-cream-100/70 hover:text-mustard-300">
               Sign out

@@ -68,7 +68,12 @@ export async function Footer() {
                 </a>
               </li>
             ))}
-            <li className="text-cream-100/60">{t.footer.hours}</li>
+            {/* Hours come from the booking system and can differ by branch, so link to them instead of repeating them. */}
+            <li>
+              <Link href="/visit#hours" className={link}>
+                {t.footer.hours}
+              </Link>
+            </li>
             <li>
               <a href={SITE.social.facebook} target="_blank" rel="noopener noreferrer" className={link}>
                 Facebook

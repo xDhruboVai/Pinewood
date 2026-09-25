@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { setPreOrderStatus } from "@/actions/admin";
 import { Button } from "@/components/ui/button";
 import { EmptyState, Mark, PREORDER_LABEL, PREORDER_TONE, relativeFromNow } from "./ui";
+import { parseBookingNotes } from "@/lib/booking-notes";
 import { createClient } from "@/lib/supabase/client";
 import { formatDate, formatPrice, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -25,10 +26,36 @@ export function KitchenBoard({ initialDate }: { initialDate: string }) {
   const [showDone, setShowDone] = useState(false);
   const [pending, startTransition] = useTransition();
 
+  const [branches, setBranches] = useState<Record<string, string>>({});
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  // Only the latest load may fill the board (see ReservationsBoard).
+  const loadRequest = useRef(0);
   const load = useCallback(async () => {
+    const request = ++loadRequest.current;
     const { data, error } = await supabase.rpc("admin_list_pre_orders", { p_from: date, p_to: date });
-    if (error) toast.error(error.message);
-    setOrders((data ?? []) as AdminPreOrder[]);
+    if (request !== loadRequest.current) return;
+    if (error) console.error("admin_list_pre_orders failed", error);
+    setLoadFailed(Boolean(error));
+    const list = (data ?? []) as AdminPreOrder[];
+    // The branch comes with each order (from the booking's area). Bookings made before branches existed
+    // only have it in their notes, which staff can read from reservations (staff-only RLS policy).
+    const byReservation: Record<string, string> = {};
+    for (const o of list) if (o.reservation.branch) byReservation[o.reservation.id] = o.reservation.branch;
+    const legacy = list.filter((o) => !o.reservation.branch);
+    if (legacy.length) {
+      const { data: notes } = await supabase
+        .from("reservations")
+        .select("id, special_requests")
+        .in("id", legacy.map((o) => o.reservation.id));
+      for (const n of (notes ?? []) as { id: string; special_requests: string | null }[]) {
+        const branch = parseBookingNotes(n.special_requests).branch;
+        if (branch) byReservation[n.id] = branch;
+      }
+    }
+    if (request !== loadRequest.current) return;
+    setOrders(list);
+    setBranches(byReservation);
     setLoading(false);
   }, [supabase, date]);
 
@@ -113,6 +140,13 @@ export function KitchenBoard({ initialDate }: { initialDate: string }) {
             <div key={i} className="h-56 animate-pulse rounded-md bg-surface" />
           ))}
         </div>
+      ) : loadFailed ? (
+        <div role="alert" className="rounded-md bg-surface px-6 py-10 text-center text-sm text-ink-muted">
+          <p className="text-danger">The pre-orders for this day couldn&apos;t be loaded.</p>
+          <button type="button" className="mt-3 font-semibold text-primary underline underline-offset-2" onClick={() => { setLoading(true); load(); }}>
+            Try again
+          </button>
+        </div>
       ) : visible.length === 0 ? (
         <EmptyState>No pre-orders for this day yet.</EmptyState>
       ) : (
@@ -133,6 +167,9 @@ export function KitchenBoard({ initialDate }: { initialDate: string }) {
                 <header className="flex items-start justify-between gap-3">
                   <div>
                     <p className="display text-4xl leading-none text-ink tabular-nums">{formatTime(o.reservation.starts_at)}</p>
+                    {branches[o.reservation.id] ? (
+                      <p className="mt-2 text-[0.72rem] font-semibold tracking-[0.12em] text-ink uppercase">{branches[o.reservation.id]}</p>
+                    ) : null}
                     <p className="mt-2 text-sm font-semibold text-ink">{o.reservation.customer_name}</p>
                     <p className="text-xs text-ink-muted">
                       {o.reservation.party_size} guests · {o.reservation.area}

@@ -9,6 +9,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // The Playwright tests build into their own folder (playwright.config.ts) so they never replace .next.
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   // Frontend preview without Supabase: `PW_PREVIEW=1 npm run dev` swaps the data layer and the
   // Supabase clients for sample data (src/lib/preview), including a signed-in admin. Off by default.
   ...(process.env.PW_PREVIEW === "1"

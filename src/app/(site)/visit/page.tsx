@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Container, PageHero, QuietLink, ScriptTitle } from "@/components/site/section";
 import { Reveal } from "@/components/site/reveal";
-import { getOpeningHours, getSchedule } from "@/lib/data";
+import { getAreas, getBranches, getOpeningHours, getSchedule } from "@/lib/data";
 import { getI18n } from "@/lib/i18n";
 import { formatDate, formatTime } from "@/lib/format";
 import { SITE, mapsDirectionsUrl, visibleOutlets } from "@/lib/site";
 import { cn } from "@/lib/utils";
+import type { OpeningHours, ScheduleDay } from "@/lib/types";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -27,9 +28,44 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
   const { outlet: selectedSlug } = await searchParams;
   // The map shows the outlet picked with "Show on map" (the first outlet by default).
   const selected = outlets.find((o) => o.slug === selectedSlug) ?? outlets[0];
-  const [hours, schedule] = await Promise.all([getOpeningHours(), getSchedule(7)]);
+  const [hours, schedule, branches, areas] = await Promise.all([getOpeningHours(), getSchedule(7), getBranches(), getAreas()]);
   const todayDow = new Date(new Date().toLocaleString("en-US", { timeZone: SITE.timeZone })).getDay();
-  const specials = schedule.filter((d) => d.label);
+
+  // Each outlet as the booking system knows it: its own schedule (the database falls back to the
+  // shared hours when a branch has none), its own weekly hours, and the seating its areas offer.
+  const branchId = (slug: string) => branches.find((b) => b.slug === slug)?.id ?? null;
+  const outletSchedules = await Promise.all(outlets.map((o) => (branchId(o.slug) ? getSchedule(7, branchId(o.slug)) : Promise.resolve(null))));
+  const sharedHours = hours.filter((h) => !h.branch_id);
+  const ownHours = outlets
+    .map((o) => ({ o, rows: hours.filter((h) => h.branch_id && h.branch_id === branchId(o.slug)) }))
+    .filter((x) => x.rows.length > 0);
+  const seatingFor = (slug: string) => {
+    const kinds = new Set(areas.filter((a) => a.is_active && a.branch_id && a.branch_id === branchId(slug)).map((a) => a.seating ?? "inside"));
+    return [kinds.has("inside") ? t.reserve.inside : null, kinds.has("outside") ? `${t.reserve.outside} (${t.reserve.outsideHint})` : null]
+      .filter(Boolean)
+      .join(" · ");
+  };
+  const todayLine = (days: ScheduleDay[] | null) => {
+    const d = days?.[0];
+    if (!d) return "";
+    return d.opens && d.closes ? t.visit.todayHours(`${formatTime(d.opens, locale)} – ${formatTime(d.closes, locale)}`) : t.common.closedToday;
+  };
+  // Special hours (holidays, closures) in the next 7 days, named by branch when they don't apply to all.
+  const sources = outletSchedules.some(Boolean)
+    ? outlets.flatMap((o, i) => (outletSchedules[i] ? [{ name: o.name[locale], days: outletSchedules[i]! }] : []))
+    : [{ name: "", days: schedule }];
+  const specialMap = new Map<string, { d: ScheduleDay; names: string[] }>();
+  for (const src of sources) {
+    for (const d of src.days.filter((x) => x.label)) {
+      const key = [d.day, d.label, d.opens, d.closes].join("|");
+      const entry = specialMap.get(key) ?? { d, names: [] };
+      if (src.name) entry.names.push(src.name);
+      specialMap.set(key, entry);
+    }
+  }
+  const specials = [...specialMap.values()].map((e) => ({ d: e.d, where: e.names.length < sources.length ? e.names.join(", ") : "" }));
+  const hoursText = (h: OpeningHours | undefined) =>
+    !h || h.is_closed || !h.opens_at || !h.closes_at ? t.visit.closed : `${formatClock(h.opens_at, locale)} – ${formatClock(h.closes_at, locale)}`;
   const mapSrc = `https://www.google.com/maps?q=${encodeURIComponent(selected.mapQuery)}&output=embed`;
 
   // Show Saturday-first, as the working week runs in Bangladesh.
@@ -55,6 +91,12 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
                   {o.address[locale]}
                   {o.landmark ? <span className="block text-sm">{o.landmark[locale]}</span> : null}
                 </address>
+                {todayLine(outletSchedules[i]) ? <p className="mt-3 text-[0.95rem] text-ink">{todayLine(outletSchedules[i])}</p> : null}
+                {seatingFor(o.slug) ? (
+                  <p className="mt-1 text-sm text-ink-muted">
+                    {t.visit.seatingLabel}: {seatingFor(o.slug)}
+                  </p>
+                ) : null}
                 {!o.confirmed ? <p className="mt-2 text-xs text-ink-muted/70">{t.visit.unconfirmed}</p> : null}
                 <div className="mt-5 flex flex-wrap gap-x-7 gap-y-2">
                   <QuietLink href={mapsDirectionsUrl(o.mapQuery)} external>
@@ -78,14 +120,15 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
       </section>
 
       {/* 3. Opening hours and the map */}
-      <section className="bg-surface">
+      <section id="hours" className="scroll-mt-20 bg-surface">
         <Container className="grid gap-14 py-24 lg:grid-cols-12 lg:gap-16 lg:py-32">
           <Reveal className="lg:col-span-4">
             <ScriptTitle>{t.visit.hours}</ScriptTitle>
+            {outlets.length > 1 ? <p className="mt-3 text-sm text-ink-muted">{ownHours.length ? t.visit.hoursMostBranches : t.visit.hoursShared}</p> : null}
             <table className="mt-6 w-full">
               <tbody>
                 {order.map((dow) => {
-                  const h = hours.find((x) => x.weekday === dow);
+                  const h = sharedHours.find((x) => x.weekday === dow);
                   const isToday = dow === todayDow;
                   return (
                     <tr key={dow} className={cn("text-ink-muted", isToday && "text-ink")}>
@@ -93,25 +136,42 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
                         {t.visit.weekdays[dow]}
                         {isToday ? <span className="ml-2 text-sm font-normal text-ink-muted">({t.visit.today})</span> : null}
                       </th>
-                      <td className="py-1.5 text-right tabular-nums">
-                        {!h || h.is_closed || !h.opens_at || !h.closes_at
-                          ? t.visit.closed
-                          : `${formatClock(h.opens_at, locale)} – ${formatClock(h.closes_at, locale)}`}
-                      </td>
+                      <td className="py-1.5 text-right tabular-nums">{hoursText(h)}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
 
+            {ownHours.map(({ o, rows }) => (
+              <div key={o.slug} className="mt-8">
+                <p className="font-medium text-ink">{t.visit.hoursOwn(o.name[locale])}</p>
+                <table className="mt-2 w-full text-sm">
+                  <tbody>
+                    {order
+                      .filter((dow) => rows.some((r) => r.weekday === dow))
+                      .map((dow) => (
+                        <tr key={dow} className="text-ink-muted">
+                          <th scope="row" className="py-1 text-left font-normal">
+                            {t.visit.weekdays[dow]}
+                          </th>
+                          <td className="py-1 text-right tabular-nums">{hoursText(rows.find((r) => r.weekday === dow))}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+
             {specials.length > 0 ? (
               <div className="mt-8">
                 <p className="font-medium text-ink">{t.visit.specialHours}</p>
                 <ul className="mt-2 space-y-1.5 text-sm">
-                  {specials.map((d) => (
-                    <li key={d.day} className="flex justify-between gap-4 text-ink-muted">
+                  {specials.map(({ d, where }) => (
+                    <li key={[d.day, d.label, where].join("|")} className="flex justify-between gap-4 text-ink-muted">
                       <span>
                         {formatDate(`${d.day}T12:00:00+06:00`, locale)} · {d.label}
+                        {where ? ` · ${where}` : ""}
                       </span>
                       <span>{d.opens && d.closes ? `${formatTime(d.opens, locale)} – ${formatTime(d.closes, locale)}` : t.visit.closed}</span>
                     </li>

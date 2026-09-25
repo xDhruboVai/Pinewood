@@ -10,6 +10,7 @@ Website, reservation system and staff dashboard for Pine Wood Café & Restaurant
 - [Supabase Setup](docs/supabase-setup.md) - project linking, migrations, seed data, Vault, secrets, auth, and Edge Functions.
 - [Supabase and Website Connection](docs/supabase-website-connection.md) - environment variables and the application data flow.
 - [Website Initialization](docs/website-initialization.md) - local configuration, verification, and running the website.
+- [Testing and Code Quality](docs/testing.md) - unit, database and browser tests, typecheck, lint, and testing email safely.
 
 ## What's inside
 
@@ -124,7 +125,7 @@ npx supabase db push
 ```
 
 3. Load the seed data: open **SQL Editor**, paste `supabase/seed.sql`, run.
-4. Open `supabase/setup/vault_secrets.sql`, fill in your project URL and a long random webhook secret, and run it in the SQL editor.
+4. Paste `supabase/setup/vault_secrets.sql` into the SQL editor, fill in the webhook URL and a long random webhook secret there, and run it. Don't save real values in the tracked file (a `vault_secrets.local.sql` copy is git-ignored).
 
 ### 3. Resend (email)
 

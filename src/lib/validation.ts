@@ -28,7 +28,7 @@ export const guestSchema = z.object({
   largeParty: z.boolean().default(false),
   consent: z.literal(true, { message: "consentRequired" }),
   locale: z.enum(["en", "bn"]).default("en"),
-  // Honeypot: real users never fill this.
+  // Honeypot: real users never fill this. A filled one fails validation, so nothing is booked.
   website: z.string().max(0).optional().default(""),
 });
 

@@ -1,13 +1,14 @@
 import { AdminBody, PageHeader } from "@/components/admin/ui";
 import { MenuManager } from "@/components/admin/menu-manager";
 import { requireManager } from "@/lib/auth";
-import { getMenu } from "@/lib/data";
+import { getMenuFresh } from "@/lib/data";
 
 export const metadata = { title: "Menu" };
 
 export default async function AdminMenuPage() {
   await requireManager();
-  const menu = await getMenu();
+  // Straight from the database: staff always see the current menu, not the public cached copy.
+  const menu = await getMenuFresh();
   return (
     <>
       <PageHeader

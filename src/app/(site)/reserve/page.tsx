@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Container, PageHero, ScriptTitle } from "@/components/site/section";
 import { BookingFlow } from "@/components/reserve/booking-flow";
 import { Reveal } from "@/components/site/reveal";
-import { getAreas } from "@/lib/data";
+import { getAreas, getBranches } from "@/lib/data";
 import { getI18n } from "@/lib/i18n";
 import { SITE } from "@/lib/site";
 
@@ -17,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * SITE.booking (10-minute hold, 60-minute pre-order cutoff, 10 guests online); keep them in step.
  */
 export default async function ReservePage() {
-  const [{ t }, areas] = await Promise.all([getI18n(), getAreas()]);
+  const [{ t }, areas, branches] = await Promise.all([getI18n(), getAreas(), getBranches()]);
 
   return (
     <>
@@ -27,7 +27,7 @@ export default async function ReservePage() {
       {/* 2. The booking form */}
       <section>
         <Container className="py-16 lg:py-24">
-          <BookingFlow areas={areas} />
+          <BookingFlow areas={areas} branches={branches} />
         </Container>
       </section>
 

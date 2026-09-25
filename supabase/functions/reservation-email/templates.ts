@@ -12,7 +12,7 @@ export interface ReservationForEmail {
   phone: string;
   locale: "en" | "bn";
   cancel_reason: string | null;
-  area: { name_en: string; name_bn: string } | null;
+  area: { name_en: string; name_bn: string; branch?: { name_en: string; name_bn: string } | null } | null;
 }
 
 interface Context {
@@ -39,6 +39,7 @@ const copy = {
     date: "Date",
     time: "Time",
     guests: "Guests",
+    branch: "Branch",
     seating: "Seating",
     reference: "Reference",
     largeParty: "10+ guests — our team will arrange seating with you",
@@ -84,6 +85,7 @@ const copy = {
     date: "তারিখ",
     time: "সময়",
     guests: "অতিথি",
+    branch: "শাখা",
     seating: "বসার স্থান",
     reference: "রেফারেন্স",
     largeParty: "১০+ অতিথি — আমাদের টিম আপনার সাথে বসার ব্যবস্থা করবে",
@@ -151,7 +153,7 @@ function layout(title: string, inner: string, footer: string) {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.cream}"><tr><td align="center" style="padding:32px 16px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${C.paper};border:1px solid ${C.line}">
 <tr><td style="padding:28px 36px;border-bottom:1px solid ${C.line}">
-<div style="font-family:Georgia,serif;font-size:22px;letter-spacing:.28em;color:${C.forest}">PINE WOOD</div>
+<div style="font-family:Georgia,serif;font-size:22px;letter-spacing:.28em;color:${C.forest}">PINEWOOD</div>
 <div style="height:1px;width:40px;background:${C.gold};margin-top:10px"></div>
 </td></tr>
 <tr><td style="padding:32px 36px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.65;color:${C.ink}">${inner}</td></tr>
@@ -163,12 +165,14 @@ export function renderEmail(kind: EmailKind, r: ReservationForEmail, ctx: Contex
   const t = copy[r.locale === "bn" ? "bn" : "en"];
   const { date, time } = formatWhen(r);
   const areaName = r.area ? (r.locale === "bn" ? r.area.name_bn : r.area.name_en) : "";
+  const branch = r.area?.branch ? (r.locale === "bn" ? r.area.branch.name_bn : r.area.branch.name_en) : "";
   const guests = r.locale === "bn" ? new Intl.NumberFormat("bn-BD").format(r.party_size) : String(r.party_size);
 
   const rows: [string, string][] = [
     [t.date, date],
     [t.time, time],
     [t.guests, r.large_party ? `${guests}+` : guests],
+    ...(branch ? ([[t.branch, branch]] as [string, string][]) : []),
     [t.seating, areaName],
     [t.reference, r.reference],
   ];

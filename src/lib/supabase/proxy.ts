@@ -28,7 +28,13 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isLogin = pathname === "/admin/login";
 
-  if (!isLoggedIn && !isLogin) {
+  // A server action sent from an admin page after the session ended (Next-Action header) goes through,
+  // so the action itself answers "Your session has ended" (every admin action checks the session and
+  // the database checks it again). Redirected here, the page fell over instead. This redirect never
+  // protected actions anyway: they can be posted to any route.
+  const isServerAction = request.method === "POST" && request.headers.has("next-action");
+
+  if (!isLoggedIn && !isLogin && !isServerAction) {
     const url = request.nextUrl.clone();
     url.pathname = "/admin/login";
     url.search = "";

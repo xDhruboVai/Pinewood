@@ -13,7 +13,9 @@ import { GUEST_REVIEWS } from "@/lib/reviews";
 import { DISH_PHOTOS, PHOTOS, SITE, mapsSearchUrl, type PhotoName } from "@/lib/site";
 
 // Food photos without a sure menu match, shown as a photo wall (two shapes, alternating).
-const TABLES: PhotoName[] = ["steakSet", "shashlikSet", "alfredoBake", "setMenus", "spaghetti", "breakfastPlate", "coffeeCup", "potatoWedges", "chickenRicePlate", "clubSandwichPlatter", "skewerPlate"];
+// Twelve, with every third one landscape: in 2 or 4 columns each column gets the same mix of
+// shapes, so the columns end level instead of leaving a gap after the last photo.
+const TABLES: PhotoName[] = ["steakSet", "shashlikSet", "alfredoBake", "setMenus", "spaghetti", "breakfastPlate", "coffeeCup", "potatoWedges", "chickenRicePlate", "clubSandwichPlatter", "skewerPlate", "chickenPlate"];
 
 /**
  * Home, in order: 1. brand and signature food (hero), 2. more of the food, 3. the rooms,
@@ -83,10 +85,10 @@ export default async function HomePage() {
           <Reveal>
             <ScriptTitle>{t.home.tablesTitle}</ScriptTitle>
           </Reveal>
-          <div className="mt-12 gap-5 columns-2 md:columns-3 lg:columns-4">
+          <div className="mt-12 gap-5 columns-2 lg:columns-4">
             {TABLES.map((name, i) => (
               <Reveal as="figure" key={name} delay={(i % 4) * 80} className="mb-5 break-inside-avoid">
-                <Photo name={name} alt={t.photos[name].alt} sizes="(min-width: 1024px) 24vw, (min-width: 768px) 32vw, 50vw" className={i % 3 === 1 ? "aspect-[4/3]" : "aspect-[4/5]"} />
+                <Photo name={name} alt={t.photos[name].alt} sizes="(min-width: 1024px) 24vw, 50vw" className={i % 3 === 1 ? "aspect-[4/3]" : "aspect-[4/5]"} />
               </Reveal>
             ))}
           </div>
@@ -106,8 +108,10 @@ export default async function HomePage() {
             <QuietLink href="/about#rooms" className="mt-6">
               {t.home.insideCta}
             </QuietLink>
-            <figure className="mt-12 hidden w-3/5 lg:block">
-              <Photo name="coffeeCounter" alt={t.photos.coffeeCounter.alt} sizes="25vw" className="aspect-[4/5]" position="40% 50%" />
+            {/* Pushed to the bottom so it lines up with the large photo instead of floating mid-column;
+                only on wide screens, where the column has room for it beside the text. */}
+            <figure className="hidden w-1/2 pt-12 xl:mt-auto xl:block">
+              <Photo name="coffeeCounter" alt={t.photos.coffeeCounter.alt} sizes="20vw" className="aspect-square" position="40% 50%" />
               <figcaption className="mt-3 text-sm text-ink-muted">{t.photos.coffeeCounter.caption}</figcaption>
             </figure>
           </Reveal>

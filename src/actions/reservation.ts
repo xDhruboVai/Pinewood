@@ -65,7 +65,6 @@ export async function submitReservation(input: unknown): Promise<FormResult<{ re
   const parsed = reservationSchema.safeParse(input);
   if (!parsed.success) return fieldErrors(parsed.error);
   const d = parsed.data;
-  if (d.website) return { ok: true, data: { reference: "PW-------", phone: d.phone } };
 
   const { clientKey } = await clientIdentity();
   const { data, error } = await createAdminClient().rpc("create_reservation", {
@@ -89,7 +88,6 @@ export async function joinWaitlist(input: unknown): Promise<FormResult<{ id: str
   const parsed = waitlistSchema.safeParse(input);
   if (!parsed.success) return fieldErrors(parsed.error);
   const d = parsed.data;
-  if (d.website) return { ok: true, data: { id: "" } };
 
   const { data, error } = await createAdminClient().rpc("join_waitlist", {
     p_area: d.areaId,

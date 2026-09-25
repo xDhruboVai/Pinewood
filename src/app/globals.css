@@ -59,9 +59,10 @@
   --color-charcoal: #1c211f;
 
   /* Three families. Bangla falls back to Noto Serif Bengali (script and serif slots) and Hind Siliguri (sans slot). */
-  --font-script: var(--font-kaushan), var(--font-bn-serif), cursive;
-  --font-display: var(--font-cormorant), var(--font-bn-serif), Georgia, serif;
-  --font-sans: var(--font-fira), var(--font-bn-sans), ui-sans-serif, system-ui, sans-serif;
+  /* --font-taka-*: only the taka sign (src/app/layout.tsx), ahead of the full Bangla fonts. */
+  --font-script: var(--font-kaushan), var(--font-taka-serif), var(--font-bn-serif), cursive;
+  --font-display: var(--font-cormorant), var(--font-taka-serif), var(--font-bn-serif), Georgia, serif;
+  --font-sans: var(--font-fira), var(--font-taka-sans), var(--font-bn-sans), ui-sans-serif, system-ui, sans-serif;
 
   --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
 
@@ -163,19 +164,20 @@
 }
 
 /* Uppercase practical labels */
-/* Home hero and navigation (reference design): heavy serif, thin hand script, wide-tracked sans. */
+/* Home hero and navigation (reference design): heavy serif, thin hand script, wide-tracked sans.
+   Playfair and Sacramento are loaded by the home hero only (home-hero.tsx), not on every page. */
 @utility hero-serif {
-  font-family: var(--font-playfair), var(--font-bn-serif), Georgia, serif;
+  font-family: var(--font-playfair), var(--font-taka-serif), var(--font-bn-serif), Georgia, serif;
   font-weight: 600;
   letter-spacing: -0.015em;
 }
 @utility hand {
-  font-family: var(--font-sacramento), var(--font-bn-serif), cursive;
+  font-family: var(--font-sacramento), var(--font-taka-serif), var(--font-bn-serif), cursive;
   font-weight: 400;
   line-height: 1;
 }
 @utility font-nav {
-  font-family: var(--font-montserrat), var(--font-bn-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-montserrat), var(--font-taka-sans), var(--font-bn-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 @utility label {

@@ -43,7 +43,7 @@ Edit `supabase/.env` with the Resend and site values. Keep these values consiste
 - `WEBHOOK_SECRET` must match the `pinewood_webhook_secret` Vault value.
 - `EMAIL_FROM` must use a domain verified in Resend.
 
-In the Supabase SQL Editor, open [`supabase/setup/vault_secrets.sql`](../supabase/setup/vault_secrets.sql), replace its placeholders, and run it once. The `pinewood_functions_url` value should use your project reference:
+Paste [`supabase/setup/vault_secrets.sql`](../supabase/setup/vault_secrets.sql) into the Supabase SQL Editor, replace its placeholders in the editor, and run it once. Never save real values in the tracked file; if you want a file, copy it to `supabase/setup/vault_secrets.local.sql`, which git ignores. The `pinewood_functions_url` value should use your project reference:
 
 ```text
 https://YOUR-PROJECT-REF.supabase.co/functions/v1
@@ -62,6 +62,19 @@ npx supabase functions deploy reservation-email --no-verify-jwt
 ```
 
 The function intentionally uses the custom `x-webhook-secret` header. Do not remove the matching secret check or change `verify_jwt = false` in [`supabase/config.toml`](../supabase/config.toml) without updating the webhook design.
+
+## Branches, seating and hours
+
+Each of the three branches (Dhanmondi Road 6, Dhanmondi Road 27, Banani) has its own areas, tables and, when they differ, opening hours; availability is worked out per branch (migration `20260926000100_branches.sql`). A branch takes online bookings only once it has an active area with active tables. Fill in [`supabase/setup/branch_setup.sql`](../supabase/setup/branch_setup.sql) with the owners' real rooms, table sizes and hours; the areas in `seed.sql` are placeholders and deliberately belong to no branch.
+
+Staff screens for hours, closures, blockouts and staff accounts are retired for now: manage those in the Table Editor (`opening_hours`, `hours_overrides`, `blockouts`, `staff_profiles`) or with the template's SQL.
+
+### Deploy order for the September 2026 changes
+
+1. Deploy the Edge Function: `npm run functions:deploy` (it understands the new `log_id` email field and still works with the old database).
+2. Apply the migrations: `supabase db push` (`20260926000100_branches`, `20260926000200_email_delivery`, `20260926000300_data_integrity`).
+3. Add each branch's real areas and tables with `supabase/setup/branch_setup.sql`, then switch off the placeholder areas that have no branch (step 5 in that file). Until they're off, a hand-made request could still hold seats in them; the website itself never offers them.
+4. Deploy the website. Until step 3 is done for a branch, its booking form shows "no online slots" and asks guests to call.
 
 ## Configure staff authentication
 

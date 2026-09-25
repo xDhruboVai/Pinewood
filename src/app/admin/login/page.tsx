@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Logo } from "@/components/site/logo";
 import { LoginForm } from "@/components/admin/login-form";
 
@@ -29,9 +30,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <LoginForm next={next} />
         </div>
         <p className="mt-6 text-center text-xs text-cream-100/70">
-          <a href="/" className="hover:text-cream-50">
+          <Link href="/" className="hover:text-cream-50">
             ← Back to the website
-          </a>
+          </Link>
         </p>
       </div>
     </main>

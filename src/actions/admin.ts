@@ -1,37 +1,43 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { getStaff } from "@/lib/auth";
+import { getStaff, type StaffSession } from "@/lib/auth";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { dhakaToIso } from "@/lib/format";
 import type { ActionResult, PreOrderStatus, ReservationStatus, StaffRole } from "@/lib/types";
 
 const uuid = z.string().uuid();
 
+const GENERIC = "Something went wrong. Please try again.";
+const FRIENDLY: Record<string, string> = {
+  PW_FORBIDDEN: "You don't have permission to do that.",
+  PW_INVALID_TRANSITION: "That status change isn't allowed from the current status.",
+  PW_SLOT_FULL: "The 24h hold lapsed and the seats have been taken. Offer another time or add capacity.",
+  PW_NOT_FOUND: "Reservation not found.",
+};
+
+/** A database or auth error as a message for staff. Only known PW_ codes are shown; anything else
+ *  (a raw database or network message) goes to the server log and staff see a plain message. */
 function fail(error: { message?: string } | null | undefined): ActionResult {
-  const msg = error?.message ?? "Something went wrong";
+  const msg = error?.message ?? "";
   const code = msg.match(/PW_[A-Z_]+/)?.[0];
-  const friendly: Record<string, string> = {
-    PW_FORBIDDEN: "You don't have permission to do that.",
-    PW_INVALID_TRANSITION: "That status change isn't allowed from the current status.",
-    PW_SLOT_FULL: "The 24h hold lapsed and the seats have been taken. Offer another time or add capacity.",
-    PW_NOT_FOUND: "Reservation not found.",
-  };
-  return { ok: false, error: (code && friendly[code]) || msg };
+  if (code && FRIENDLY[code]) return { ok: false, error: FRIENDLY[code] };
+  console.error("admin action failed:", msg || error);
+  return { ok: false, error: GENERIC };
 }
 
-async function staffOrThrow() {
+/**
+ * The signed-in staff member, or the message the screen should show. Returned, not thrown, so an
+ * expired session shows "please sign in again" instead of breaking the page.
+ */
+async function staffCheck(managerOnly = false): Promise<{ ok: true; staff: StaffSession } | { ok: false; error: string }> {
   const staff = await getStaff();
-  if (!staff) throw new Error("Not signed in");
-  return staff;
-}
-
-async function managerOrThrow() {
-  const staff = await staffOrThrow();
-  if (staff.role !== "manager") throw new Error("Managers only");
-  return staff;
+  if (!staff) return { ok: false, error: "Your session has ended. Please sign in again." };
+  if (managerOnly && staff.role !== "manager") return { ok: false, error: "Only managers can do that." };
+  return { ok: true, staff };
 }
 
 // ---------------------------------------------------------------------------
@@ -40,7 +46,8 @@ async function managerOrThrow() {
 const STATUSES: ReservationStatus[] = ["pending", "confirmed", "seated", "completed", "cancelled", "rejected", "expired", "no_show"];
 
 export async function setReservationStatus(id: string, status: ReservationStatus, reason?: string): Promise<ActionResult> {
-  await staffOrThrow();
+  const auth = await staffCheck();
+  if (!auth.ok) return auth;
   if (!uuid.safeParse(id).success || !STATUSES.includes(status)) return { ok: false, error: "Invalid request" };
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_set_status", { p_id: id, p_status: status, p_reason: reason?.slice(0, 300) ?? null });
@@ -48,21 +55,24 @@ export async function setReservationStatus(id: string, status: ReservationStatus
 }
 
 export async function dismissCancelRequest(id: string): Promise<ActionResult> {
-  await staffOrThrow();
+  const auth = await staffCheck();
+  if (!auth.ok) return auth;
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_dismiss_cancel_request", { p_id: id });
   return error ? fail(error) : { ok: true, data: undefined };
 }
 
 export async function updateStaffNotes(id: string, notes: string): Promise<ActionResult> {
-  await staffOrThrow();
+  const auth = await staffCheck();
+  if (!auth.ok) return auth;
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_update_notes", { p_id: id, p_notes: notes.slice(0, 1000) });
   return error ? fail(error) : { ok: true, data: undefined };
 }
 
 export async function assignTables(id: string, tableIds: string[]): Promise<ActionResult> {
-  await staffOrThrow();
+  const auth = await staffCheck();
+  if (!auth.ok) return auth;
   if (!z.array(uuid).max(20).safeParse(tableIds).success) return { ok: false, error: "Invalid tables" };
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_assign_tables", { p_id: id, p_table_ids: tableIds });
@@ -70,14 +80,16 @@ export async function assignTables(id: string, tableIds: string[]): Promise<Acti
 }
 
 export async function resendEmail(id: string): Promise<ActionResult> {
-  await staffOrThrow();
+  const auth = await staffCheck();
+  if (!auth.ok) return auth;
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_resend_email", { p_id: id });
   return error ? fail(error) : { ok: true, data: undefined };
 }
 
 export async function setWaitlistStatus(id: string, status: "cancelled" | "waiting"): Promise<ActionResult> {
-  await staffOrThrow();
+  const auth = await staffCheck();
+  if (!auth.ok) return auth;
   const supabase = await createClient();
   const { error } = await supabase.from("waitlist_entries").update({ status }).eq("id", id);
   return error ? fail(error) : { ok: true, data: undefined };
@@ -87,7 +99,8 @@ export async function setWaitlistStatus(id: string, status: "cancelled" | "waiti
 // Kitchen
 // ---------------------------------------------------------------------------
 export async function setPreOrderStatus(id: string, status: PreOrderStatus): Promise<ActionResult> {
-  await staffOrThrow();
+  const auth = await staffCheck();
+  if (!auth.ok) return auth;
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_set_pre_order_status", { p_id: id, p_status: status });
   return error ? fail(error) : { ok: true, data: undefined };
@@ -106,7 +119,8 @@ const blockoutSchema = z.object({
 });
 
 export async function createBlockout(input: unknown): Promise<ActionResult> {
-  await staffOrThrow();
+  const auth = await staffCheck();
+  if (!auth.ok) return auth;
   const parsed = blockoutSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Please check the blockout details." };
   const d = parsed.data;
@@ -128,7 +142,8 @@ export async function createBlockout(input: unknown): Promise<ActionResult> {
 }
 
 export async function deleteBlockout(id: string): Promise<ActionResult> {
-  await staffOrThrow();
+  const auth = await staffCheck();
+  if (!auth.ok) return auth;
   const supabase = await createClient();
   const { error } = await supabase.from("blockouts").delete().eq("id", id);
   if (error) return fail(error);
@@ -137,16 +152,19 @@ export async function deleteBlockout(id: string): Promise<ActionResult> {
 }
 
 export async function toggleArea(id: string, isActive: boolean): Promise<ActionResult> {
-  await managerOrThrow();
+  const auth = await staffCheck(true);
+  if (!auth.ok) return auth;
   const supabase = await createClient();
   const { error } = await supabase.from("areas").update({ is_active: isActive }).eq("id", id);
   if (error) return fail(error);
+  updateTag(CACHE_TAGS.areas);
   revalidatePath("/admin/availability");
   return { ok: true, data: undefined };
 }
 
 export async function toggleTable(id: string, isActive: boolean): Promise<ActionResult> {
-  await managerOrThrow();
+  const auth = await staffCheck(true);
+  if (!auth.ok) return auth;
   const supabase = await createClient();
   const { error } = await supabase.from("dining_tables").update({ is_active: isActive }).eq("id", id);
   if (error) return fail(error);
@@ -164,7 +182,8 @@ const overrideSchema = z.object({
 });
 
 export async function createHoursOverride(input: unknown): Promise<ActionResult> {
-  await managerOrThrow();
+  const auth = await staffCheck(true);
+  if (!auth.ok) return auth;
   const parsed = overrideSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Please check the override details." };
   const d = parsed.data;
@@ -181,29 +200,36 @@ export async function createHoursOverride(input: unknown): Promise<ActionResult>
     closes_at: d.isClosed ? null : d.closesAt,
   });
   if (error) return fail(error);
+  updateTag(CACHE_TAGS.hours);
   revalidatePath("/admin/availability");
   return { ok: true, data: undefined };
 }
 
 export async function deleteHoursOverride(id: string): Promise<ActionResult> {
-  await managerOrThrow();
+  const auth = await staffCheck(true);
+  if (!auth.ok) return auth;
   const supabase = await createClient();
   const { error } = await supabase.from("hours_overrides").delete().eq("id", id);
   if (error) return fail(error);
+  updateTag(CACHE_TAGS.hours);
   revalidatePath("/admin/availability");
   return { ok: true, data: undefined };
 }
 
 export async function updateOpeningHours(weekday: number, opensAt: string, closesAt: string, isClosed: boolean): Promise<ActionResult> {
-  await managerOrThrow();
+  const auth = await staffCheck(true);
+  if (!auth.ok) return auth;
   if (weekday < 0 || weekday > 6) return { ok: false, error: "Invalid day" };
   if (!isClosed && (!/^\d{2}:\d{2}$/.test(opensAt) || !/^\d{2}:\d{2}$/.test(closesAt))) return { ok: false, error: "Invalid times" };
   const supabase = await createClient();
   const { error } = await supabase
     .from("opening_hours")
     .update({ opens_at: isClosed ? null : opensAt, closes_at: isClosed ? null : closesAt, is_closed: isClosed })
-    .eq("weekday", weekday);
+    .eq("weekday", weekday)
+    // The hours every branch shares; a branch's own hours are separate rows (migration 20260926000100).
+    .is("branch_id", null);
   if (error) return fail(error);
+  updateTag(CACHE_TAGS.hours);
   revalidatePath("/admin/availability");
   return { ok: true, data: undefined };
 }
@@ -215,17 +241,28 @@ export async function updateMenuItem(
   id: string,
   patch: { is_available?: boolean; is_featured?: boolean; price?: number },
 ): Promise<ActionResult> {
-  await managerOrThrow();
+  const auth = await staffCheck(true);
+  if (!auth.ok) return auth;
+  if (!patch || typeof patch !== "object") return { ok: false, error: "Invalid request" };
   const clean: Record<string, unknown> = {};
   if (typeof patch.is_available === "boolean") clean.is_available = patch.is_available;
   if (typeof patch.is_featured === "boolean") clean.is_featured = patch.is_featured;
-  if (typeof patch.price === "number") {
-    if (!Number.isFinite(patch.price) || patch.price < 0 || patch.price > 100000) return { ok: false, error: "Invalid price" };
-    clean.price = Math.round(patch.price * 100) / 100;
+  // A dish always costs something (no menu item is priced at 0), so an empty or zero price is a
+  // mistake, never "free". Anything that isn't a real number above 0 is refused, not coerced.
+  if ("price" in patch) {
+    const price = patch.price;
+    const cents = typeof price === "number" ? price * 100 : NaN;
+    if (typeof price !== "number" || !Number.isFinite(price) || price <= 0 || price > 100000 || Math.abs(Math.round(cents) - cents) > 1e-6) {
+      return { ok: false, error: "Enter a price above ৳0 (up to ৳100,000, at most 2 decimals)." };
+    }
+    clean.price = Math.round(cents) / 100;
   }
+  if (Object.keys(clean).length === 0) return { ok: false, error: "Nothing to update." };
   const supabase = await createClient();
   const { error } = await supabase.from("menu_items").update(clean).eq("id", id);
   if (error) return fail(error);
+  // The public menu is cached (src/lib/data.ts): expire it so the next page view reads the change.
+  updateTag(CACHE_TAGS.menu);
   revalidatePath("/menu");
   revalidatePath("/");
   return { ok: true, data: undefined };
@@ -241,7 +278,8 @@ const inviteSchema = z.object({
 });
 
 export async function inviteStaff(input: unknown): Promise<ActionResult> {
-  await managerOrThrow();
+  const auth = await staffCheck(true);
+  if (!auth.ok) return auth;
   const parsed = inviteSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Please enter a name, a valid email and a role." };
 
@@ -263,7 +301,9 @@ export async function inviteStaff(input: unknown): Promise<ActionResult> {
 }
 
 export async function updateStaffMember(userId: string, patch: { role?: StaffRole; is_active?: boolean }): Promise<ActionResult> {
-  const me = await managerOrThrow();
+  const auth = await staffCheck(true);
+  if (!auth.ok) return auth;
+  const me = auth.staff;
   if (userId === me.userId) return { ok: false, error: "You can't change your own role or access." };
   const clean: Record<string, unknown> = {};
   if (patch.role === "manager" || patch.role === "foh") clean.role = patch.role;

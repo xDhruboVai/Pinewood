@@ -18,6 +18,18 @@ export type MenuTag = "halal" | "vegetarian" | "chef_special" | "spicy" | "seafo
 
 export type StaffRole = "manager" | "foh";
 
+export interface Branch {
+  id: string;
+  /** Matches an outlet slug in src/lib/site.ts OUTLETS. */
+  slug: string;
+  name_en: string;
+  name_bn: string;
+  is_active: boolean;
+  sort_order: number;
+}
+
+export type Seating = "inside" | "outside";
+
 export interface Area {
   id: string;
   slug: string;
@@ -27,6 +39,9 @@ export interface Area {
   description_bn: string | null;
   is_active: boolean;
   sort_order: number;
+  /** null until the area is assigned to a branch (migration 20260926000100). */
+  branch_id?: string | null;
+  seating?: Seating;
 }
 
 export interface DiningTable {
@@ -131,7 +146,9 @@ export interface AdminReservation {
   cancel_reason: string | null;
   staff_notes: string | null;
   created_at: string;
-  area: { id: string; slug: string; name: string };
+  area: { id: string; slug: string; name: string; seating?: Seating };
+  /** From the booking's area; null for bookings made before branches existed. */
+  branch?: { id: string; slug: string; name: string } | null;
   tables: { id: string; label: string; seats: number }[];
   history: { bookings: number; visits: number; no_shows: number; cancellations: number };
   pre_order: { id: string; status: PreOrderStatus; total: number; item_count: number } | null;
@@ -153,6 +170,7 @@ export interface AdminPreOrder {
     party_size: number;
     starts_at: string;
     area: string;
+    branch?: string | null;
     tables: string[];
   };
   items: {
@@ -201,6 +219,7 @@ export interface HoursOverride {
 
 export interface OpeningHours {
   weekday: number;
+  branch_id?: string | null;
   opens_at: string | null;
   closes_at: string | null;
   is_closed: boolean;

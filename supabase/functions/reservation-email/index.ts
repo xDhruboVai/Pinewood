@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
   const provided = req.headers.get("x-webhook-secret") ?? "";
   if (!safeEqual(provided, env("WEBHOOK_SECRET"))) return json({ error: "unauthorized" }, 401);
 
-  let payload: { reservation_id?: string; kind?: EmailKind };
+  let payload: { reservation_id?: string; kind?: EmailKind; log_id?: number | string | null };
   try {
     payload = await req.json();
   } catch {
@@ -40,17 +40,31 @@ Deno.serve(async (req) => {
   if (!reservation_id || !UUID_RE.test(reservation_id) || !kind || !KINDS.includes(kind)) {
     return json({ error: "invalid_payload" }, 400);
   }
+  // Newer databases send the id of this email's email_log row; retries of the same email reuse it.
+  const logId = payload.log_id === undefined || payload.log_id === null ? null : Number(payload.log_id);
+  if (logId !== null && (!Number.isSafeInteger(logId) || logId <= 0)) return json({ error: "invalid_payload" }, 400);
 
   const supabase = createClient(env("SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"), {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
+  if (logId !== null) {
+    // Only a row that is still waiting may be sent, so a repeated webhook for an email that already
+    // went out (or was skipped or given up on) never reaches the guest twice.
+    const { data: row } = await supabase.from("email_log").select("status").eq("id", logId).eq("reservation_id", reservation_id).maybeSingle();
+    if (!row) return json({ error: "unknown_log_id" }, 404);
+    if (row.status !== "queued") return json({ skipped: true, reason: `already ${row.status}` });
+  }
+
+  // The outcome goes on the queued row (newer databases) or into a new row (older ones).
   const log = (status: "sent" | "failed" | "skipped", extra: { provider_id?: string; error?: string } = {}) =>
-    supabase.from("email_log").insert({ reservation_id, kind, status, ...extra });
+    logId !== null
+      ? supabase.from("email_log").update({ status, ...extra, updated_at: new Date().toISOString() }).eq("id", logId).eq("status", "queued")
+      : supabase.from("email_log").insert({ reservation_id, kind, status, ...extra });
 
   const { data: reservation, error } = await supabase
     .from("reservations")
-    .select("id, reference, status, starts_at, ends_at, party_size, large_party, customer_name, email, phone, locale, cancel_reason, token_version, area:areas(name_en, name_bn)")
+    .select("id, reference, status, starts_at, ends_at, party_size, large_party, customer_name, email, phone, locale, cancel_reason, token_version, area:areas(name_en, name_bn, branch:branches(name_en, name_bn))")
     .eq("id", reservation_id)
     .single();
 
@@ -89,7 +103,8 @@ Deno.serve(async (req) => {
     .sign(secret);
 
   const siteUrl = env("SITE_URL").replace(/\/$/, "");
-  const area = Array.isArray(reservation.area) ? reservation.area[0] : reservation.area;
+  const areaRow = Array.isArray(reservation.area) ? reservation.area[0] : reservation.area;
+  const area = areaRow ? { ...areaRow, branch: Array.isArray(areaRow.branch) ? (areaRow.branch[0] ?? null) : areaRow.branch } : null;
   const email = renderEmail(kind, { ...reservation, area } as ReservationForEmail, {
     manageUrl: `${siteUrl}/reservation/${token}`,
     siteUrl,
@@ -97,13 +112,15 @@ Deno.serve(async (req) => {
     hasPreOrder: Boolean(preOrder && preOrder.status !== "cancelled"),
   });
 
-  const minuteBucket = Math.floor(Date.now() / 60_000);
+  // One key per email_log row: if a retry of the same row gets through, Resend returns the original
+  // result instead of sending again (keys last 24 hours). Older databases: per minute, as before.
+  const idempotencyKey = logId !== null ? `pinewood-email-${logId}` : `${reservation.id}-${kind}-${Math.floor(Date.now() / 60_000)}`;
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${env("RESEND_API_KEY")}`,
       "Content-Type": "application/json",
-      "Idempotency-Key": `${reservation.id}-${kind}-${minuteBucket}`,
+      "Idempotency-Key": idempotencyKey,
     },
     body: JSON.stringify({
       from: env("EMAIL_FROM"),

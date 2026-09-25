@@ -11,6 +11,39 @@ const MINUTES = ["00", "30"];
 const AMPM: AmPm[] = ["am", "pm"];
 
 /**
+ * Reads the hour box (1-12) after a keystroke, given the hour that was there before. Tapping the box
+ * pre-fills "7" for the wheel; a digit typed next to it (before or after, depending on where the
+ * cursor sat) starts a new hour instead of making "79" or "97". Typing "1" then "0" still gives 10,
+ * and a 24-hour value like "19" gives 7 pm.
+ */
+export function readHour(raw: string, prev = ""): { hour: string; ampm?: AmPm } {
+  const d = raw.replace(/\D/g, "").slice(0, 2);
+  if (d === "") return { hour: "" };
+  const asHour = (v: string): { hour: string; ampm?: AmPm } => {
+    const k = Number(v);
+    if (k >= 1 && k <= 12) return { hour: String(k) };
+    if (v.length === 2 && k >= 13 && k <= 23) return { hour: String(k - 12), ampm: "pm" };
+    return { hour: "" };
+  };
+  // One digit typed next to a one-digit hour.
+  if (d.length === 2 && prev.length === 1) {
+    if (d === prev + d[1]) {
+      const two = asHour(d); // after it: 1 -> 10, 11, 12, or 24-hour 13-19
+      return two.hour ? two : asHour(d[1]);
+    }
+    if (d === d[0] + prev) return asHour(d[0]); // before it: a new hour
+  }
+  const whole = asHour(d);
+  return whole.hour ? whole : asHour(d.slice(-1));
+}
+
+/** Minutes 00-59; a typed value over 59 keeps the last digit. */
+export function readMinute(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(-2);
+  return d.length === 2 && Number(d) > 59 ? d.slice(-1) : d;
+}
+
+/**
  * The booking form's time field. Hour and minutes can be typed (digits only) or picked on a wheel
  * that opens under the field: three scrolling columns (hour, minute, AM/PM) with the chosen row in a
  * band across the middle, and Cancel / OK. Times with no free table (`free`, "h:mm am") are faded.
@@ -41,14 +74,35 @@ export function TimePicker({
   const [open, setOpen] = useState(false);
   const before = useRef({ hour, minute, ampm });
   const wrap = useRef<HTMLDivElement>(null);
-  const digits = (v: string) => v.replace(/\D/g, "").slice(0, 2);
+  // Tapping or tabbing into a box selects its value, so the digit typed next replaces it.
+  const selectAll = (e: React.FocusEvent<HTMLInputElement>) => {
+    openWheel();
+    const el = e.currentTarget;
+    requestAnimationFrame(() => el.select());
+  };
+  // The mouse-up that ends a tap would otherwise drop that selection.
+  const keepSelection = (e: React.MouseEvent<HTMLInputElement>) => {
+    const el = e.currentTarget;
+    if (el.value && el.selectionStart === 0 && el.selectionEnd === el.value.length) e.preventDefault();
+  };
+  // Keyboard: "a" or "p" in either box sets AM or PM.
+  const onAmPmKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const k = e.key.toLowerCase();
+    if (k === "a" || k === "p") {
+      e.preventDefault();
+      onAmpm(k === "a" ? "am" : "pm");
+    }
+  };
 
   const openWheel = () => {
     if (open) return;
     before.current = { hour, minute, ampm };
-    // Start the wheel on a sensible time if nothing is typed yet.
-    if (!hour) onHour("7");
-    if (!MINUTES.includes(minute)) onMinute("00");
+    // Start the wheel on a sensible time if nothing is typed yet. A typed time is left as it is, even
+    // one the wheel doesn't list (7:15): the form says why it can't be booked instead of changing it.
+    if (!hour) {
+      onHour("7");
+      if (!MINUTES.includes(minute)) onMinute("00");
+    }
     setOpen(true);
   };
   const cancel = () => {
@@ -65,7 +119,11 @@ export function TimePicker({
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") cancel();
-      if (e.key === "Enter") setOpen(false);
+      if (e.key === "Enter") {
+        // Enter confirms the time; it shouldn't also send the whole booking form.
+        e.preventDefault();
+        setOpen(false);
+      }
     };
     document.addEventListener("pointerdown", onDown);
     document.addEventListener("keydown", onKey);
@@ -99,8 +157,14 @@ export function TimePicker({
             placeholder="7"
             aria-label={labels.hour}
             value={hour}
-            onFocus={openWheel}
-            onChange={(e) => onHour(digits(e.target.value))}
+            onFocus={selectAll}
+            onMouseUp={keepSelection}
+            onChange={(e) => {
+              const next = readHour(e.target.value, hour);
+              onHour(next.hour);
+              if (next.ampm) onAmpm(next.ampm);
+            }}
+            onKeyDown={onAmPmKey}
             aria-invalid={invalid}
             className="w-6 bg-transparent text-right placeholder:text-ink-muted/60 focus:outline-none"
           />
@@ -113,8 +177,10 @@ export function TimePicker({
             placeholder="00"
             aria-label={labels.minute}
             value={minute}
-            onFocus={openWheel}
-            onChange={(e) => onMinute(digits(e.target.value))}
+            onFocus={selectAll}
+            onMouseUp={keepSelection}
+            onChange={(e) => onMinute(readMinute(e.target.value))}
+            onKeyDown={onAmPmKey}
             onBlur={() => minute.length === 1 && onMinute(`0${minute}`)}
             aria-invalid={invalid}
             className="w-6 bg-transparent placeholder:text-ink-muted/60 focus:outline-none"

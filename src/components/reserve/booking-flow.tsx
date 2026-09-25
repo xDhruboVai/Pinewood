@@ -10,32 +10,49 @@ import { Field, Input, Label, Textarea } from "@/components/ui/form";
 import { DatePicker } from "./date-picker";
 import { TimePicker } from "./time-picker";
 import { createClient } from "@/lib/supabase/client";
+import { composeBookingNotes } from "@/lib/booking-notes";
 import { useI18n } from "@/lib/i18n/client";
-import { dhakaDate, formatDate, formatNumber, formatTime, isoToDhakaTime } from "@/lib/format";
+import { dhakaDate, formatDate, formatNumber, formatTime, isoToDhakaTime, normalizePhone } from "@/lib/format";
 import { SITE, visibleOutlets } from "@/lib/site";
 import { cn } from "@/lib/utils";
-import type { Area, AvailabilitySlot, ScheduleDay } from "@/lib/types";
-
-type Seating = "inside" | "outside";
+import type { Area, AvailabilitySlot, Branch, ScheduleDay, Seating } from "@/lib/types";
 
 const DAYS_AHEAD = 31;
+/** Pause after the date, party size or branch changes before asking for free times (8 → 9 → 10 asks once). */
+const SLOTS_DEBOUNCE_MS = 250;
 
-/** Areas that count as "outside" (the smoking zone). Everything else is inside (non-smoking). */
-const isOutside = (a: Area) => /outdoor|outside|rooftop|balcony|terrace|smok/i.test(`${a.slug} ${a.name_en}`);
+/** Arrow keys (and Home/End) move between the options of a radio group, like native radio buttons. */
+function radioKeys(e: React.KeyboardEvent<HTMLElement>) {
+  const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+  if (step === undefined && e.key !== "Home" && e.key !== "End") return;
+  const radios = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]')];
+  const i = radios.indexOf(document.activeElement as HTMLButtonElement);
+  if (i < 0) return;
+  e.preventDefault();
+  const next = e.key === "Home" ? 0 : e.key === "End" ? radios.length - 1 : (i + step! + radios.length) % radios.length;
+  radios[next].focus();
+  radios[next].click();
+}
+
+/** Outside = the smoking zone. The area's seating column decides; older data falls back to its name. */
+const isOutside = (a: Area) => (a.seating ? a.seating === "outside" : /outdoor|outside|rooftop|balcony|terrace|smok/i.test(`${a.slug} ${a.name_en}`));
 
 /**
  * One short form: name, phone, email, branch, inside or outside, number of people, date and time,
- * and a note. The booking system has one pool of seats and doesn't know branches or smoking zones
- * yet, so both travel to staff as the first lines of the booking notes. Seats are held only when
- * the form is sent, in the matching area with the most free seats at that time.
+ * and a note. Availability and hours are the chosen branch's own (get_availability / get_schedule
+ * with p_branch); the booking belongs to that branch through its area. Branch and seating are also
+ * written as the first lines of the notes, the readable copy staff see. Seats are held only when the
+ * form is sent, in the matching area with the most free seats at that time.
  */
-export function BookingFlow({ areas }: { areas: Area[] }) {
+export function BookingFlow({ areas, branches }: { areas: Area[]; branches: Branch[] }) {
   const { locale, t } = useI18n();
   const supabase = useMemo(() => createClient(), []);
 
   const outlets = visibleOutlets();
   const [outletSlug, setOutletSlug] = useState(outlets[0]?.slug ?? "");
   const outlet = outlets.find((o) => o.slug === outletSlug);
+  // The database branch for the chosen outlet (same slug). None = that branch takes no online bookings.
+  const branchId = branches.find((b) => b.slug === outletSlug)?.id ?? null;
   const [seating, setSeating] = useState<Seating>("inside");
   const [party, setParty] = useState(2);
   const dates = useMemo(() => Array.from({ length: DAYS_AHEAD }, (_, i) => dhakaDate(i)), []);
@@ -49,41 +66,69 @@ export function BookingFlow({ areas }: { areas: Area[] }) {
   const [schedule, setSchedule] = useState<Record<string, ScheduleDay>>({});
   const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", email: "", note: "", website: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<{ reference: string; phone: string } | null>(null);
 
-  // Areas for the chosen seating. If the database has none of that kind, any active area will do:
-  // staff still see the choice in the notes.
+  // The chosen branch's areas for the chosen seating. If the branch has none of that kind, any of its
+  // active areas will do: staff still see the choice in the notes.
   const areaIds = useMemo(() => {
-    const active = areas.filter((a) => a.is_active);
+    const active = areas.filter((a) => a.is_active && branchId && a.branch_id === branchId);
     const matching = active.filter((a) => (seating === "outside" ? isOutside(a) : !isOutside(a)));
     return new Set((matching.length ? matching : active).map((a) => a.id));
-  }, [areas, seating]);
+  }, [areas, seating, branchId]);
 
   useEffect(() => {
-    supabase.rpc("get_schedule", { p_days: DAYS_AHEAD }).then(({ data }) => {
+    // Switching branch again before the answer comes back: the older answer is dropped.
+    let current = true;
+    supabase.rpc("get_schedule", { p_days: DAYS_AHEAD, p_branch: branchId }).then(({ data }) => {
+      if (!current) return;
       const map: Record<string, ScheduleDay> = {};
       for (const d of (data ?? []) as ScheduleDay[]) map[d.day] = d;
       setSchedule(map);
       const firstOpen = dates.find((d) => map[d]?.opens);
       if (firstOpen && !map[dates[0]]?.opens) setDate(firstOpen);
     });
-  }, [supabase, dates]);
+    return () => {
+      current = false;
+    };
+  }, [supabase, dates, branchId]);
 
+  // Every availability request is numbered and only the latest may change the screen, so a slow
+  // answer for an earlier date or party size never replaces a newer one. The database stays the
+  // authority: hold_slot checks capacity again when the form is sent.
+  const slotsRequest = useRef(0);
   const fetchSlots = useCallback(async () => {
-    const { data, error } = await supabase.rpc("get_availability", { p_date: date, p_party_size: party, p_duration_minutes: duration });
-    if (!error) setSlots((data ?? []) as AvailabilitySlot[]);
+    const request = ++slotsRequest.current;
+    if (!branchId) {
+      setSlots([]);
+      setLoadError(false);
+      setLoading(false);
+      return;
+    }
+    const { data, error } = await supabase.rpc("get_availability", { p_date: date, p_party_size: party, p_duration_minutes: duration, p_branch: branchId });
+    if (request !== slotsRequest.current) return;
+    // Say so when times can't be loaded, rather than showing "no free tables".
+    setLoadError(Boolean(error));
+    setSlots(error ? [] : ((data ?? []) as AvailabilitySlot[]));
     setLoading(false);
-  }, [supabase, date, party, duration]);
+  }, [supabase, date, party, duration, branchId]);
 
   const fetchRef = useRef(fetchSlots);
   fetchRef.current = fetchSlots;
 
+  // The first load asks straight away; later changes wait SLOTS_DEBOUNCE_MS. Any answer still on its
+  // way for the old choice is out of date from the moment the choice changes.
+  const firstSlots = useRef(true);
   useEffect(() => {
+    slotsRequest.current++;
     setLoading(true);
-    fetchSlots();
+    const wait = firstSlots.current ? 0 : SLOTS_DEBOUNCE_MS;
+    firstSlots.current = false;
+    const timer = setTimeout(fetchSlots, wait);
+    return () => clearTimeout(timer);
   }, [fetchSlots]);
 
   // Live updates: the database broadcasts a ping whenever capacity changes.
@@ -133,7 +178,6 @@ export function BookingFlow({ areas }: { areas: Area[] }) {
         : !match.available
           ? t.reserve.timeFull
           : "";
-  const digits = (v: string) => v.replace(/\D/g, "").slice(0, 2);
 
   // Earliest and latest start times with a free table, shown as a hint under the time.
   const freeTimes = times.filter((s) => s.available);
@@ -151,6 +195,15 @@ export function BookingFlow({ areas }: { areas: Area[] }) {
     [freeTimes],
   );
 
+  // A changed time replaces an earlier "please enter a time" message.
+  useEffect(() => {
+    setErrors((e) => {
+      if (!e.time) return e;
+      const { time: _time, ...rest } = e;
+      return rest;
+    });
+  }, [hour, minute, ampm, date]);
+
   const openDates = dates.filter((d) => Object.keys(schedule).length === 0 || schedule[d]?.opens);
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const err = (k: string) => errors[k];
@@ -158,8 +211,18 @@ export function BookingFlow({ areas }: { areas: Area[] }) {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    if (!chosen) {
-      setErrors({ time: hour === "" ? t.reserve.timeRequired : timeProblem });
+    // Check the details here first (same limits as the server, which checks again), so no table is
+    // held for a form that would be refused, and every problem shows at once.
+    const found: Record<string, string> = {};
+    const name = form.name.trim();
+    const email = form.email.trim();
+    if (name.length < 2 || name.length > 80) found.name = t.errors.invalidName;
+    if (!normalizePhone(form.phone)) found.phone = t.errors.invalidPhone;
+    if (email.length > 254 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) found.email = t.errors.invalidEmail;
+    if (!chosen) found.time = hour === "" ? t.reserve.timeRequired : timeProblem;
+    if (Object.keys(found).length > 0 || !chosen) {
+      setErrors(found);
+      document.getElementById(Object.keys(found)[0])?.focus();
       return;
     }
     startTransition(async () => {
@@ -170,13 +233,7 @@ export function BookingFlow({ areas }: { areas: Area[] }) {
         return;
       }
       // Staff see the branch and seating first in the booking notes.
-      const notes = [
-        outlets.length > 1 && outlet ? `Branch: ${outlet.name.en}` : "",
-        `Seating: ${seating === "outside" ? "Outside (smoking)" : "Inside (non-smoking)"}`,
-        form.note.trim(),
-      ]
-        .filter(Boolean)
-        .join("\n");
+      const notes = composeBookingNotes({ branch: outlets.length > 1 ? outlet?.name.en : null, seating, note: form.note });
       const res = await submitReservation({
         name: form.name,
         phone: form.phone,
@@ -293,13 +350,14 @@ export function BookingFlow({ areas }: { areas: Area[] }) {
 
       {/* 4. Number of people */}
       <Step n={n(4)} title={t.reserve.partySize} hint={t.reserve.largePartyCall}>
-        <div role="radiogroup" aria-label={t.reserve.partySize} className="grid grid-cols-5 gap-2 sm:grid-cols-10">
+        <div role="radiogroup" aria-label={t.reserve.partySize} onKeyDown={radioKeys} className="grid grid-cols-5 gap-2 sm:grid-cols-10">
           {Array.from({ length: SITE.booking.maxOnlineParty }, (_, i) => i + 1).map((count) => (
             <button
               key={count}
               type="button"
               role="radio"
               aria-checked={party === count}
+              tabIndex={party === count ? 0 : -1}
               onClick={() => setParty(count)}
               className={cn(
                 "h-12 rounded-sm border text-[0.95rem] font-medium tabular-nums transition-colors",
@@ -341,10 +399,25 @@ export function BookingFlow({ areas }: { areas: Area[] }) {
               labels={{ hour: t.reserve.hour, minute: t.reserve.minute, ampm: t.reserve.ampm, clear: t.reserve.clearTime, cancel: t.reserve.cancel, ok: t.reserve.ok }}
             />
           </div>
-          <div className="sm:col-span-2">
+          {/* Dimmed while the free times for a new date, party size or branch are being checked. */}
+          <div aria-busy={loading} className={cn("transition-opacity duration-200 sm:col-span-2", loading && "opacity-50")}>
             {err("time") ? (
               <p role="alert" className="text-sm text-danger">
                 {err("time")}
+              </p>
+            ) : loadError ? (
+              <p role="alert" className="text-sm text-danger">
+                {t.reserve.timesError}{" "}
+                <button
+                  type="button"
+                  className="font-medium text-primary underline underline-offset-2 evening:text-ink"
+                  onClick={() => {
+                    setLoading(true);
+                    fetchSlots();
+                  }}
+                >
+                  {t.reserve.timesRetry}
+                </button>
               </p>
             ) : hour !== "" && !loading && timeProblem ? (
               <p className="text-sm text-accent-ink">{timeProblem}</p>
@@ -389,7 +462,8 @@ export function BookingFlow({ areas }: { areas: Area[] }) {
           {summary}
         </p>
         <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-4">
-          <Button type="submit" size="lg" disabled={pending} className="w-full sm:w-auto">
+          {/* Also waits for the free times: sent mid-check, the form would call a free time "not available". */}
+          <Button type="submit" size="lg" disabled={pending || loading} className="w-full sm:w-auto">
             {pending ? t.reserve.submitting : t.reserve.submit}
           </Button>
           <p className="max-w-md text-xs leading-relaxed text-ink-muted">
@@ -436,7 +510,7 @@ function Choice({
   options: { value: string; title: string; hint?: string }[];
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="grid gap-3 sm:grid-cols-3">
+    <div role="radiogroup" aria-label={label} onKeyDown={radioKeys} className="grid gap-3 sm:grid-cols-3">
       {options.map((o) => {
         const on = o.value === value;
         return (
@@ -445,6 +519,7 @@ function Choice({
             type="button"
             role="radio"
             aria-checked={on}
+            tabIndex={on ? 0 : -1}
             onClick={() => onChange(o.value)}
             className={cn(
               "flex min-h-[4.75rem] flex-col justify-center rounded-sm border px-4 py-3 text-left transition-colors",
