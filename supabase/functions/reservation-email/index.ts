@@ -11,7 +11,7 @@ function env(name: string): string {
   return value;
 }
 
-function safeEqual(a: string, b: string): boolean {
+function safeEqual(a: string, b: string): boolean { 
   const enc = new TextEncoder();
   const x = enc.encode(a);
   const y = enc.encode(b);
