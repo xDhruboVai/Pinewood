@@ -2,13 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { ChefHat, Clock, Users } from "lucide-react";
 import { setPreOrderStatus } from "@/actions/admin";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { EmptyState, PREORDER_LABEL, relativeFromNow } from "./ui";
+import { EmptyState, Mark, PREORDER_LABEL, PREORDER_TONE, relativeFromNow } from "./ui";
 import { createClient } from "@/lib/supabase/client";
-import { formatPrice, formatTime } from "@/lib/format";
+import { formatDate, formatPrice, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { AdminPreOrder, PreOrderStatus } from "@/lib/types";
 
@@ -17,15 +15,6 @@ const NEXT: Partial<Record<PreOrderStatus, { to: PreOrderStatus; label: string }
   acknowledged: { to: "preparing", label: "Start preparing" },
   preparing: { to: "ready", label: "Mark ready" },
   ready: { to: "served", label: "Served" },
-};
-
-const TONE: Record<PreOrderStatus, "gold" | "forest" | "blue" | "neutral" | "danger"> = {
-  submitted: "gold",
-  acknowledged: "neutral",
-  preparing: "blue",
-  ready: "forest",
-  served: "neutral",
-  cancelled: "danger",
 };
 
 export function KitchenBoard({ initialDate }: { initialDate: string }) {
@@ -85,45 +74,47 @@ export function KitchenBoard({ initialDate }: { initialDate: string }) {
   }, [orders]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => e.target.value && setDate(e.target.value)}
-          className="h-10 rounded-sm border border-line bg-surface px-3 text-sm"
-          aria-label="Date"
-        />
+    <div className="space-y-10">
+      <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+        <label className="relative">
+          <span className="display text-2xl text-ink sm:text-3xl">{formatDate(`${date}T12:00:00+06:00`, "en", { weekday: "long", month: "long" })}</span>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => e.target.value && setDate(e.target.value)}
+            onClick={(e) => e.currentTarget.showPicker?.()}
+            className="absolute inset-0 cursor-pointer opacity-0"
+            aria-label="Date"
+          />
+        </label>
         <label className="flex items-center gap-2 text-sm text-ink-muted">
-          <input type="checkbox" checked={showDone} onChange={(e) => setShowDone(e.target.checked)} />
-          Show served & cancelled
+          <input type="checkbox" checked={showDone} onChange={(e) => setShowDone(e.target.checked)} className="accent-[var(--primary)]" />
+          Show served and cancelled
         </label>
       </div>
 
       {totals.length > 0 ? (
-        <section className="rounded-sm border border-line bg-surface p-4">
-          <p className="text-xs font-semibold tracking-wide text-ink-muted uppercase">Prep totals for the day</p>
-          <div className="mt-3 flex flex-wrap gap-2">
+        <section className="rounded-md bg-pine-100 px-6 py-5">
+          <h2 className="display text-2xl text-ink">To prepare today</h2>
+          <ul className="mt-3 grid gap-x-10 gap-y-1.5 text-sm sm:grid-cols-2 lg:grid-cols-3">
             {totals.map(([name, qty]) => (
-              <span key={name} className="rounded-sm bg-surface-2 px-2.5 py-1 text-sm">
-                <span className="font-semibold tabular-nums">{qty}×</span> {name}
-              </span>
+              <li key={name} className="flex gap-3">
+                <span className="w-7 shrink-0 text-right font-semibold tabular-nums">{qty}×</span>
+                <span className="text-ink">{name}</span>
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       ) : null}
 
       {loading ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 3 }, (_, i) => (
-            <div key={i} className="h-56 animate-pulse rounded-sm bg-surface-2" />
+            <div key={i} className="h-56 animate-pulse rounded-md bg-surface" />
           ))}
         </div>
       ) : visible.length === 0 ? (
-        <EmptyState>
-          <ChefHat className="mx-auto mb-3 size-6" />
-          No pre-orders for this day yet.
-        </EmptyState>
+        <EmptyState>No pre-orders for this day yet.</EmptyState>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {visible.map((o) => {
@@ -134,48 +125,50 @@ export function KitchenBoard({ initialDate }: { initialDate: string }) {
               <article
                 key={o.id}
                 className={cn(
-                  "flex flex-col rounded-sm border bg-surface",
-                  o.status === "submitted" ? "border-gold-400" : o.status === "ready" ? "border-forest-400" : "border-line",
+                  "flex flex-col rounded-md p-5",
+                  o.status === "submitted" ? "bg-mustard-400/15" : "bg-surface",
                   (o.status === "served" || o.status === "cancelled") && "opacity-60",
                 )}
               >
-                <header className="flex items-start justify-between gap-3 border-b border-line p-4">
+                <header className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-display text-3xl leading-none text-ink tabular-nums">{formatTime(o.reservation.starts_at)}</p>
-                    <p className="mt-1.5 text-sm font-semibold text-ink">{o.reservation.customer_name}</p>
-                    <p className="flex items-center gap-2 text-xs text-ink-muted">
-                      <Users className="size-3" /> {o.reservation.party_size} · {o.reservation.area}
+                    <p className="display text-4xl leading-none text-ink tabular-nums">{formatTime(o.reservation.starts_at)}</p>
+                    <p className="mt-2 text-sm font-semibold text-ink">{o.reservation.customer_name}</p>
+                    <p className="text-xs text-ink-muted">
+                      {o.reservation.party_size} guests · {o.reservation.area}
                       {o.reservation.tables.length ? ` · ${o.reservation.tables.join(", ")}` : ""}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <Badge tone={TONE[o.status]}>{PREORDER_LABEL[o.status]}</Badge>
-                    <p className="mt-2 flex items-center justify-end gap-1 text-xs text-ink-muted">
-                      <Clock className="size-3" /> ready {relativeFromNow(prepBy)}
-                    </p>
+                  <div className="flex flex-col items-end gap-1.5 pt-1">
+                    <Mark tone={PREORDER_TONE[o.status]}>{PREORDER_LABEL[o.status]}</Mark>
+                    <p className="text-xs text-ink-muted">Ready {relativeFromNow(prepBy)}</p>
                   </div>
                 </header>
-                <ul className="flex-1 divide-y divide-line px-4">
+                <ul className="mt-5 flex-1 space-y-2.5">
                   {o.items.map((i) => (
-                    <li key={i.id} className="py-2.5 text-sm">
-                      <span className="font-semibold tabular-nums">{i.quantity}×</span> {i.name}
-                      {i.variant ? <span className="text-ink-muted"> · {i.variant}</span> : null}
-                      {i.addons.length ? <span className="block pl-6 text-xs text-ink-muted">+ {i.addons.join(", ")}</span> : null}
-                      {i.notes ? <span className="block pl-6 text-xs text-gold-600 italic">“{i.notes}”</span> : null}
+                    <li key={i.id} className="flex gap-3 text-sm">
+                      <span className="w-6 shrink-0 text-right font-semibold tabular-nums">{i.quantity}×</span>
+                      <span className="min-w-0">
+                        <span className="font-medium tracking-wide text-ink uppercase">{i.name}</span>
+                        {i.variant ? <span className="text-ink-muted"> · {i.variant}</span> : null}
+                        {i.addons.length ? <span className="block text-xs text-ink-muted">With {i.addons.join(", ")}</span> : null}
+                        {i.notes ? <span className="block text-xs text-accent-ink">“{i.notes}”</span> : null}
+                      </span>
                     </li>
                   ))}
                 </ul>
-                {o.notes ? <p className="mx-4 mb-3 rounded-sm bg-surface-2 p-2.5 text-xs text-ink">Note: {o.notes}</p> : null}
+                {o.notes ? <p className="mt-4 rounded-md bg-canvas p-3 text-xs text-ink">Note: {o.notes}</p> : null}
                 {reservationCancelled ? (
-                  <p className="mx-4 mb-3 text-xs font-semibold text-red-800">Reservation {o.reservation.status.replace("_", "-")} — do not prepare.</p>
+                  <p className="mt-4 text-xs font-semibold text-danger">Booking {o.reservation.status.replace("_", "-")}. Don&apos;t prepare this.</p>
                 ) : null}
-                <footer className="flex items-center justify-between gap-3 border-t border-line p-4">
-                  <span className="text-sm text-ink-muted">
+                <footer className="mt-5 flex items-center justify-between gap-3">
+                  <span className="text-xs text-ink-muted tabular-nums">
                     {o.reservation.reference} · {formatPrice(Number(o.total))}
                   </span>
                   {next && !reservationCancelled ? (
                     <Button
                       size="sm"
+                      variant="pine"
                       disabled={pending}
                       onClick={() =>
                         startTransition(async () => {

@@ -43,12 +43,12 @@ const copy = {
     reference: "Reference",
     largeParty: "10+ guests — our team will arrange seating with you",
     manage: "View or manage your reservation",
-    footer: "Pine Wood · House 19, Road 12 (old 31), Dhanmondi, Dhaka",
+    footer: "Pinewood Cafe + Kitchen · Dhanmondi Road 6 · Dhanmondi Road 27 · Banani, Dhaka",
     received: {
       subject: (ref: string) => `We've received your table request · ${ref}`,
       title: "Your request is in",
       body: (phone: string) =>
-        `Thank you for choosing Pine Wood. Your table is held while our team verifies the booking — we'll call you at ${phone} shortly. Once confirmed, you'll receive an email with a link to pre-order your meal.`,
+        `Thank you for choosing Pinewood. Your table is held while our team verifies the booking — we'll call you at ${phone} shortly. Once confirmed, you'll receive an email with a link to pre-order your meal.`,
     },
     waitlist_promoted: {
       subject: (ref: string) => `A table opened up for you · ${ref}`,
@@ -65,7 +65,7 @@ const copy = {
       cutoff: "Pre-orders close 60 minutes before your reservation.",
     },
     reminder: {
-      subject: (ref: string) => `See you soon at Pine Wood · ${ref}`,
+      subject: (ref: string) => `See you soon at Pinewood · ${ref}`,
       title: "See you in about two hours",
       body: "Your table is ready for you. The fireplace is lit and the kettle is on.",
       cta: "Pre-order so it's ready on arrival",
@@ -88,12 +88,12 @@ const copy = {
     reference: "রেফারেন্স",
     largeParty: "১০+ অতিথি — আমাদের টিম আপনার সাথে বসার ব্যবস্থা করবে",
     manage: "আপনার রিজার্ভেশন দেখুন বা পরিচালনা করুন",
-    footer: "পাইন উড · বাড়ি ১৯, রোড ১২ (পুরাতন ৩১), ধানমন্ডি, ঢাকা",
+    footer: "পাইনউড ক্যাফে + কিচেন · ধানমন্ডি রোড ৬ · ধানমন্ডি রোড ২৭ · বনানী, ঢাকা",
     received: {
       subject: (ref: string) => `আপনার টেবিল অনুরোধ পেয়েছি · ${ref}`,
       title: "আপনার অনুরোধ গ্রহণ করা হয়েছে",
       body: (phone: string) =>
-        `পাইন উড বেছে নেওয়ার জন্য ধন্যবাদ। বুকিং যাচাই না হওয়া পর্যন্ত আপনার টেবিলটি রাখা আছে — শীঘ্রই আমরা ${phone} নম্বরে কল করব। নিশ্চিত হলে খাবার আগাম অর্ডারের লিংকসহ একটি ইমেইল পাবেন।`,
+        `পাইনউড বেছে নেওয়ার জন্য ধন্যবাদ। বুকিং যাচাই না হওয়া পর্যন্ত আপনার টেবিলটি রাখা আছে — শীঘ্রই আমরা ${phone} নম্বরে কল করব। নিশ্চিত হলে খাবার আগাম অর্ডারের লিংকসহ একটি ইমেইল পাবেন।`,
     },
     waitlist_promoted: {
       subject: (ref: string) => `আপনার জন্য একটি টেবিল খালি হয়েছে · ${ref}`,
@@ -110,7 +110,7 @@ const copy = {
       cutoff: "রিজার্ভেশনের ৬০ মিনিট আগে আগাম অর্ডার বন্ধ হয়ে যায়।",
     },
     reminder: {
-      subject: (ref: string) => `শীঘ্রই দেখা হচ্ছে পাইন উডে · ${ref}`,
+      subject: (ref: string) => `শীঘ্রই দেখা হচ্ছে পাইনউডে · ${ref}`,
       title: "প্রায় দুই ঘণ্টা পর দেখা হচ্ছে",
       body: "আপনার টেবিল প্রস্তুত। ফায়ারপ্লেস জ্বলছে, চায়ের কেটলিও চুলায়।",
       cta: "আগাম অর্ডার করুন, পৌঁছেই খাবার পাবেন",

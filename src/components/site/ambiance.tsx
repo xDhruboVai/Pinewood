@@ -6,10 +6,12 @@ import { useI18n } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 
 type Mode = "auto" | "day" | "evening";
-const KEY = "pw-ambiance";
+// Cream (day) is the default. The key was renamed from "pw-ambiance" so earlier saved choices reset to day.
+const KEY = "pw-ambiance-v2";
+const DEFAULT_MODE: Mode = "day";
 
 /** Runs before paint (inlined in <head>) so there's no flash of the wrong mood. */
-export const ambianceScript = `(function(){try{var d=document.documentElement;if(location.pathname.indexOf('/admin')===0){d.dataset.ambiance='day';return;}var m=localStorage.getItem('${KEY}')||'auto';var h=new Date().getHours();d.dataset.ambiance=m==='auto'?((h>=18||h<6)?'evening':'day'):m;d.dataset.ambianceMode=m;}catch(e){}})();`;
+export const ambianceScript = `(function(){try{var d=document.documentElement;if(location.pathname.indexOf('/admin')===0){d.dataset.ambiance='day';return;}var m=localStorage.getItem('${KEY}')||'${DEFAULT_MODE}';var h=new Date().getHours();d.dataset.ambiance=m==='auto'?((h>=18||h<6)?'evening':'day'):m;d.dataset.ambianceMode=m;}catch(e){}})();`;
 
 function resolve(mode: Mode): "day" | "evening" {
   if (mode !== "auto") return mode;
@@ -20,9 +22,9 @@ function resolve(mode: Mode): "day" | "evening" {
 function readMode(): Mode {
   try {
     const v = localStorage.getItem(KEY);
-    return v === "day" || v === "evening" ? v : "auto";
+    return v === "auto" || v === "day" || v === "evening" ? v : DEFAULT_MODE;
   } catch {
-    return "auto";
+    return DEFAULT_MODE;
   }
 }
 
@@ -56,11 +58,11 @@ export function ForceDayMode() {
 
 export function AmbianceToggle({ className }: { className?: string }) {
   const { t } = useI18n();
-  const [mode, setMode] = useState<Mode>("auto");
+  const [mode, setMode] = useState<Mode>(DEFAULT_MODE);
 
   useEffect(() => setMode(readMode()), []);
 
-  const next: Record<Mode, Mode> = { auto: "day", day: "evening", evening: "auto" };
+  const next: Record<Mode, Mode> = { day: "evening", evening: "auto", auto: "day" };
   const labels: Record<Mode, string> = {
     auto: t.common.ambianceAuto,
     day: t.common.ambianceDay,
@@ -79,15 +81,13 @@ export function AmbianceToggle({ className }: { className?: string }) {
         setMode(m);
         apply(m);
       }}
-      className={cn(
-        "inline-flex h-9 items-center gap-1.5 rounded-full border border-line px-3 text-xs font-semibold text-ink-muted transition-colors hover:border-ink/40 hover:text-ink",
-        className,
-      )}
+      className={cn("inline-flex items-center gap-1.5 transition-colors hover:text-cream-100", className)}
       aria-label={`${t.common.ambiance}: ${labels[mode]}`}
-      title={`${t.common.ambiance}: ${labels[mode]}`}
     >
-      <Icon className="size-4" aria-hidden />
-      <span>{labels[mode]}</span>
+      <Icon className="size-3.5" aria-hidden />
+      <span>
+        {t.common.ambiance}: {labels[mode]}
+      </span>
     </button>
   );
 }

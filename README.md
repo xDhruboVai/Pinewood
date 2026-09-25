@@ -24,6 +24,18 @@ Website, reservation system and staff dashboard for Pine Wood Café & Restaurant
 | Render webhook adapter and deployment service | `backend`, `render.yaml` |
 | Email sender (Resend, bilingual templates, signed links) | `supabase/functions/reservation-email` |
 
+### Frontend design
+
+The look follows the printed Pinewood Cafe + Kitchen menu.
+
+| Part | Details |
+| --- | --- |
+| Colours | Teal `#214e51` (pine), cream `#f5efe3`, mustard `#e6c34a`, wood `#7a5439`. Defined in `src/app/globals.css`. The older class names (`forest-*`, `timber-*`, `gold-*`) point at these colours, so both old and new names work. |
+| Fonts | **Kaushan Script** for brush-script menu headings (`script` class), **Cormorant Garamond** for page and section titles (`display` class), **Fira Sans** for everything else. Bangla falls back to **Noto Serif Bengali** and **Hind Siliguri**. Loaded in `src/app/layout.tsx`. |
+| Theme | Day (cream pages, teal header and footer) and evening (whole site teal). Auto switches at 6pm; visitors can change it in the footer. |
+| Logo and images | `public/images/`: the oval badge logo (`logo-badge-green.png`, `logo-badge-cream.png`) and its tree (`logo-tree-*.png`), real photos in `photos/`, the printed-menu crops, and the printed menu pages in `menu/`. All photos are listed in `PHOTOS` in `src/lib/site.ts`. |
+| Buttons | `src/components/ui/button.tsx`: uppercase labels, `primary`, `mustard`, `pine`, `outline`, `light`, `ghost`, `link`, `danger`, `subtle` variants. |
+
 ### Reservation lifecycle
 
 ```
@@ -164,6 +176,14 @@ npm run dev
 
 Open http://localhost:3000 and http://localhost:3000/admin.
 
+**Frontend-only preview (no Supabase needed):** to look at the public pages without `.env.local`, start the dev server with sample data from `supabase/seed.sql`:
+
+```bash
+PW_PREVIEW=1 npm run dev
+```
+
+The admin dashboard also opens in this mode (`/admin`, signed in as a sample manager with sample bookings). Nothing is saved, and guest reservation links still need the real backend.
+
 ### 7. Deploy to Vercel
 
 Import the repo in Vercel, add the four variables from `.env.example` (with `NEXT_PUBLIC_SITE_URL` set to the production domain), deploy, then attach your custom domain under **Settings → Domains**. Update `SITE_URL` in `supabase/.env` and re-run `supabase secrets set`.
@@ -175,8 +195,9 @@ Create a Render Blueprint from this repository. Render will use `render.yaml` an
 ## Before launch — content to confirm
 
 - `supabase/seed.sql` items marked **CONFIRM**: seat counts per area, halal/vegetarian tags, chef specials, variant surcharges (e.g. double shot), sample add-ons.
-- Replace the **placeholder reviews** (Supabase → Table Editor → `reviews`).
-- Add real photos: put files in `public/images/` and set their paths in `PHOTOS` in `src/lib/site.ts`. Until then, illustrated scenes are shown.
+- Reviews on the home page are in `src/lib/reviews.ts` (copied from Google Maps). The placeholder rows in the Supabase `reviews` table are no longer shown on the site.
+- Photos: all photos are real. To add one, put it in `public/images/photos/`, add it to `PHOTOS` in `src/lib/site.ts`, and add its caption and alt text under `photos` in both dictionaries.
+- Seating areas: the areas in `supabase/seed.sql` (fireplace, study, timber hall, rooftop) don't match the real rooms and need replacing.
 - Check the address, phone numbers and Facebook link in `src/lib/site.ts`.
 
 ## Everyday operations
@@ -196,3 +217,46 @@ Create a Render Blueprint from this repository. Render will use `render.yaml` an
 - Staff access is enforced in Postgres (`is_staff()` / `is_manager()` in RLS and in every admin RPC), not just in the UI.
 - Pre-order links are HS256 JWTs bound to `reservations.token_version`; bump the version to revoke a link. Prices are always recomputed in the database.
 - `/reservation/*` responses are `no-store`, `no-referrer` and `noindex`.
+
+## Changelog
+
+### Frontend redesign on the first version (September 2026)
+
+The site was rolled back to the first build, then restyled with the design from the later printed-menu redesign. Page layouts and wording are still the first version's. Backend, Supabase and server code were not changed.
+
+- Fonts: Kaushan Script, Cormorant Garamond and Fira Sans, with Noto Serif Bengali and Hind Siliguri for Bangla.
+- Colours: teal, cream, mustard and wood tones from the printed menu, including the evening theme.
+- Logo: the real Pinewood Cafe + Kitchen logo in the header, footer and admin; favicon and Apple icon made from the logo tree.
+- Header: teal bar, uppercase links, "EN / বাংলা" language switch, mustard "Reserve a Table" button. The theme switch moved to the footer.
+- Footer: teal, stacked logo, theme switch.
+- Home hero (in the style of a printed menu page): the food photo fills the right side and fades into the green. Over it are a small script line ("From our kitchen"), the dish name as a large serif title, its description, and its price in mustard. Below sit a thin rule with the menu section name, and a handwritten "Open till …" note taken from today's hours. The dish is Pine 3 (`HERO_DISH` in `src/app/(site)/page.tsx`); its name, description and price come from the menu data. If the dish is missing, the hero falls back to the old headline. The component is `src/components/site/home-hero.tsx`.
+- Header: added a Home link; the active link gets a mustard underline.
+- Frontend preview mode: `PW_PREVIEW=1 npm run dev` renders the public pages with sample data from `supabase/seed.sql` (`src/lib/preview/`, switched on in `next.config.ts`), so the frontend can be checked without Supabase.
+
+### Real photos and copy cleanup (September 2026)
+
+- All illustrations replaced with Pinewood's own photos (`public/images/photos/`, listed in `PHOTOS` in `src/lib/site.ts`). The Spaces page is now a photo page of the real rooms and outdoor area. The home page shows "Inside Pinewood", a food photo next to the dishes, and the team photo.
+- Invented or cliché copy removed in English and Bangla, and stylistic em dashes removed. The name is now "Pinewood", with "Since 2016" from the new logo.
+- Home hero is now a slider. Swipe or use the arrows to move between dishes, and the name, description, price and section change with each slide. Dishes are set in `HERO_SLIDES` in `src/components/site/home-hero.tsx`.
+- Light animation: sections fade up once as they scroll into view, photos zoom slightly on hover, and hero text slides in. All of it is CSS, and all of it is off for visitors who prefer reduced motion.
+- New logo: the oval "Pinewood / Cafe + Kitchen / Since 2016" badge in the header, footer and staff pages (cream on green, green on cream), and a new favicon made from its tree.
+- Hero slides: Pine 3, American Mac & Cheese and Brownie.
+- Hero slider has no buttons: drag it with a finger or the mouse (it follows the pointer), use the arrow keys, or let it change on its own.
+- Real Google Maps reviews on the home page (`src/lib/reviews.ts`), quoted word for word with a link to the listing. The placeholder reviews in the database are no longer shown.
+- Header is now 80px tall so the badge logo has room.
+- Outlet finder: outlets are listed in `OUTLETS` in `src/lib/site.ts` and shown on the Visit page (with a map per outlet), on the home page and in the footer. Only confirmed outlets appear on the live site.
+- Home dishes are now cards you can swipe or drag (photo cards where a real photo exists, green text cards otherwise).
+- New About page (`/about`), a four-column footer, and a diagonal photo panel on the home booking section.
+- Navigation is now Home, Menu, Visit us, About us. The Spaces photos moved into Visit us (`/ambiance` redirects there).
+- Lighter look: the short dashes under headings, link underlines and divider lines were removed; the active menu link shows a small dot.
+- Editorial refinement: fewer boxes, labels and yellow; script headings in the Pinewood hand for a few section openers (the menu page is the reference and wasn't changed); asymmetric photo layouts; reviews as pull quotes; outlets as a plain directory; green page headers with a photo on Visit us, About us and Reserve.
+- Pages reorganised around the navigation: Home (hero → dishes → rooms → reviews → booking), Menu (food only), Visit us (outlets → hours and map → call us), About us (story → what we serve → rooms → team → come and see us), Reserve (intro → form → good to know → call us). The room gallery moved from Visit us to About us.
+- Outlets: Pinewood is now Dhanmondi Road 6 and Dhanmondi Road 27 (Road 12 and Banani closed). The booking form asks which outlet and passes it to staff in the booking notes until the backend supports outlets.
+- Cream (day) is now the default look; visitors can still switch in the footer.
+- Home hero rebuilt to match Saalim's reference design: full-screen photo behind a see-through header, Playfair Display dish name, Sacramento handwritten accents, Montserrat navigation with a mustard underline on the active link, mustard price with "/-".
+- Booking form simplified to date, guests and time (then name, phone, email). The seating area is picked automatically and every booking uses the default length.
+- Menu: printed-menu style on teal (brush-script category headings, uppercase dishes, mustard options, food photos beside Mains, Coffee and Desserts).
+- Inner pages (Seating, Find Us): teal title band.
+- Buttons: uppercase labels, squarer corners, new `mustard`, `pine` and `light` variants.
+- Booking page: the date strip no longer pushes the page wider than the screen on phones.
+- Images regenerated into `public/images/` (the folder had been removed by the rollback).

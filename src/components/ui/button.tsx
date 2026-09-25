@@ -3,21 +3,24 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap font-sans text-sm font-semibold tracking-wide transition-all duration-300 ease-[var(--ease-soft)] disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[2px] font-sans font-semibold uppercase tracking-[0.12em] transition-colors duration-200 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        primary: "bg-primary text-primary-ink hover:opacity-90 active:scale-[0.98]",
-        outline: "border border-ink/25 text-ink hover:border-ink hover:bg-ink/5",
-        ghost: "text-ink hover:bg-ink/5",
-        link: "text-ink underline-offset-4 hover:underline px-0",
+        primary: "bg-primary text-primary-ink hover:opacity-90",
+        mustard: "bg-mustard-400 text-pine-900 hover:bg-mustard-300",
+        pine: "bg-pine-700 text-cream-100 hover:bg-pine-800",
+        outline: "border border-current/40 text-ink hover:border-current",
+        light: "border border-cream-100/50 text-cream-100 hover:border-cream-100 hover:bg-cream-100/5",
+        ghost: "text-ink normal-case tracking-normal hover:bg-ink/5",
+        link: "text-ink normal-case tracking-normal underline-offset-4 hover:underline px-0",
         danger: "bg-danger text-white hover:opacity-90",
-        subtle: "bg-surface-2 text-ink hover:bg-line",
+        subtle: "bg-surface-2 text-ink normal-case tracking-normal hover:bg-line",
       },
       size: {
-        sm: "h-8 px-3 text-xs rounded-sm",
-        md: "h-11 px-5 rounded-sm",
-        lg: "h-13 px-7 text-[0.95rem] rounded-sm",
+        sm: "h-8 px-3 text-[0.7rem]",
+        md: "h-11 px-5 text-[0.75rem]",
+        lg: "h-12 px-7 text-[0.8rem]",
         icon: "size-10 rounded-full",
       },
     },

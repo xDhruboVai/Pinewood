@@ -8,12 +8,12 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const next = params.next?.startsWith("/admin") ? params.next : "/admin";
 
   return (
-    <main className="grain flex min-h-dvh items-center justify-center px-4">
+    <main className="grain grain-dark flex min-h-dvh items-center justify-center bg-pine-700 px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="text-center">
-          <Logo subline="Staff" />
+          <Logo tone="light" subline="Staff" />
         </div>
-        <div className="mt-10 rounded-sm border border-line bg-surface p-7 shadow-sm">
+        <div className="mt-10 rounded-md bg-canvas p-8">
           <h1 className="font-display text-3xl text-ink">Sign in</h1>
           <p className="mt-1 text-sm text-ink-muted">Reservations, kitchen and availability.</p>
           {params.error === "not_staff" ? (
@@ -28,8 +28,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           ) : null}
           <LoginForm next={next} />
         </div>
-        <p className="mt-6 text-center text-xs text-ink-muted">
-          <a href="/" className="hover:text-ink">
+        <p className="mt-6 text-center text-xs text-cream-100/70">
+          <a href="/" className="hover:text-cream-50">
             ← Back to the website
           </a>
         </p>

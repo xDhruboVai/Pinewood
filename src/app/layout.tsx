@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, Hind_Siliguri, Manrope, Noto_Serif_Bengali } from "next/font/google";
+import { Cormorant_Garamond, Fira_Sans, Hind_Siliguri, Kaushan_Script, Montserrat, Noto_Serif_Bengali, Playfair_Display, Sacramento } from "next/font/google";
 import { Toaster } from "sonner";
 import { ambianceScript } from "@/components/site/ambiance";
 import { I18nProvider } from "@/lib/i18n/client";
@@ -14,7 +14,13 @@ const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
   display: "swap",
 });
-const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap" });
+const kaushan = Kaushan_Script({ subsets: ["latin"], weight: "400", variable: "--font-kaushan", display: "swap" });
+// Home hero and navigation only, matching Saalim's reference design: a heavy high-contrast serif for
+// the dish name and price, a thin handwritten script for the accent lines, and a wide-tracked sans.
+const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair", display: "swap" });
+const sacramento = Sacramento({ subsets: ["latin"], weight: "400", variable: "--font-sacramento", display: "swap" });
+const montserrat = Montserrat({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-montserrat", display: "swap" });
+const fira = Fira_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-fira", display: "swap" });
 const bnSerif = Noto_Serif_Bengali({
   subsets: ["bengali"],
   weight: ["400", "500", "600"],
@@ -34,11 +40,11 @@ export async function generateMetadata(): Promise<Metadata> {
   const { locale, t } = await getI18n();
   return {
     metadataBase: new URL(SITE.url),
-    title: { default: t.meta.title, template: "%s · Pine Wood" },
+    title: { default: t.meta.title, template: "%s · Pinewood" },
     description: t.meta.description,
     openGraph: {
       type: "website",
-      siteName: "Pine Wood",
+      siteName: "Pinewood Cafe + Kitchen",
       title: t.meta.title,
       description: t.meta.description,
       locale: locale === "bn" ? "bn_BD" : "en_US",
@@ -48,8 +54,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f4ef" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1512" },
+    { media: "(prefers-color-scheme: light)", color: "#214e51" },
+    { media: "(prefers-color-scheme: dark)", color: "#132f32" },
   ],
 };
 
@@ -61,10 +67,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       lang={locale}
       data-ambiance="day"
       suppressHydrationWarning
-      className={`${cormorant.variable} ${manrope.variable} ${bnSerif.variable} ${bnSans.variable}`}
+      className={`${cormorant.variable} ${kaushan.variable} ${fira.variable} ${playfair.variable} ${sacramento.variable} ${montserrat.variable} ${bnSerif.variable} ${bnSans.variable}`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: ambianceScript }} />
+        <script dangerouslySetInnerHTML={{ __html: `document.documentElement.classList.add("js");${ambianceScript}` }} />
       </head>
       <body className="min-h-dvh">
         <I18nProvider locale={locale}>{children}</I18nProvider>

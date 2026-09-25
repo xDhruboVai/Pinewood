@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
 import {
   createBlockout,
   createHoursOverride,
@@ -39,10 +38,10 @@ function useAction() {
 
 function Card({ title, description, children, className }: { title: string; description?: string; children: React.ReactNode; className?: string }) {
   return (
-    <section className={cn("rounded-sm border border-line bg-surface p-5", className)}>
-      <h2 className="font-display text-2xl text-ink">{title}</h2>
-      {description ? <p className="mt-1 text-sm text-ink-muted">{description}</p> : null}
-      <div className="mt-5">{children}</div>
+    <section className={className}>
+      <h2 className="display text-3xl text-ink">{title}</h2>
+      {description ? <p className="mt-1 max-w-lg text-sm leading-relaxed text-ink-muted">{description}</p> : null}
+      <div className="mt-6">{children}</div>
     </section>
   );
 }
@@ -71,13 +70,13 @@ export function AvailabilityManager({
   const capacity = (areaId: string) => tables.filter((t) => t.area_id === areaId && t.is_active).reduce((s, t) => s + t.seats, 0);
 
   return (
-    <div className="grid gap-6 xl:grid-cols-2">
-      <Card title="Blockouts" description="Hold seats back from online booking — for walk-ins, private events or maintenance.">
+    <div className="grid gap-x-16 gap-y-16 xl:grid-cols-2">
+      <Card title="Hold seats" description="Keep seats out of online booking, for walk-ins or a private event.">
         <form
           className="grid gap-3 sm:grid-cols-2"
           onSubmit={(e) => {
             e.preventDefault();
-            run(() => createBlockout(block), "Blockout added — online availability updated");
+            run(() => createBlockout(block), "Seats held. Online booking is updated.");
           }}
         >
           <Field label="Date" htmlFor="b-date">
@@ -85,10 +84,10 @@ export function AvailabilityManager({
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="From" htmlFor="b-from">
-              <Input id="b-from" type="time" step={1800} value={block.from} onChange={(e) => setBlock({ ...block, from: e.target.value })} />
+              <Input id="b-from" className="px-2.5 text-sm" type="time" step={1800} value={block.from} onChange={(e) => setBlock({ ...block, from: e.target.value })} />
             </Field>
             <Field label="To" htmlFor="b-to">
-              <Input id="b-to" type="time" step={1800} value={block.to} onChange={(e) => setBlock({ ...block, to: e.target.value })} />
+              <Input id="b-to" className="px-2.5 text-sm" type="time" step={1800} value={block.to} onChange={(e) => setBlock({ ...block, to: e.target.value })} />
             </Field>
           </div>
           <Field label="Area" htmlFor="b-area">
@@ -116,33 +115,33 @@ export function AvailabilityManager({
             <Input id="b-reason" maxLength={120} value={block.reason} onChange={(e) => setBlock({ ...block, reason: e.target.value })} />
           </Field>
           <Button type="submit" disabled={pending} className="sm:col-span-2 sm:justify-self-start">
-            <Plus /> Add blockout
+            Hold these seats
           </Button>
         </form>
 
-        <ul className="mt-6 divide-y divide-line border-t border-line text-sm">
-          {blockouts.length === 0 ? <li className="py-4 text-ink-muted">No upcoming blockouts.</li> : null}
+        <ul className="mt-8 space-y-2 text-sm">
+          {blockouts.length === 0 ? <li className="text-ink-muted">No seats held.</li> : null}
           {blockouts.map((b) => (
-            <li key={b.id} className="flex items-center gap-3 py-3">
+            <li key={b.id} className="flex items-center gap-3 rounded-md bg-surface px-4 py-3">
               <span className="flex-1">
                 <span className="font-semibold">{formatDate(b.starts_at)}</span> · {formatTime(b.starts_at)}–{formatTime(b.ends_at)} ·{" "}
                 {areaName(b.area_id)}
                 {b.seats ? ` · ${b.seats} seats` : ""}
                 <span className="block text-xs text-ink-muted">{b.reason}</span>
               </span>
-              <Button variant="ghost" size="sm" aria-label="Remove blockout" disabled={pending} onClick={() => run(() => deleteBlockout(b.id), "Blockout removed")}>
-                <Trash2 />
-              </Button>
+              <button type="button" className="text-xs text-ink-muted hover:text-danger" disabled={pending} onClick={() => run(() => deleteBlockout(b.id), "Seats released")}>
+                Remove
+              </button>
             </li>
           ))}
         </ul>
       </Card>
 
       {isManager ? (
-        <Card title="Seating areas & tables" description="Capacity pools are the sum of active tables. Close an area (e.g. rooftop in the rain) to stop online bookings there.">
+        <Card title="Seating areas and tables" description="Online seats are the total of the tables that are on. Close an area to stop online bookings there.">
           <div className="space-y-5">
             {areas.map((a) => (
-              <div key={a.id} className="rounded-sm border border-line p-4">
+              <div key={a.id} className="rounded-md bg-surface p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="font-semibold text-ink">{a.name_en}</p>
@@ -151,6 +150,7 @@ export function AvailabilityManager({
                   <label className="inline-flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
+                      className="accent-[var(--primary)]"
                       checked={a.is_active}
                       disabled={pending}
                       onChange={(e) => run(() => toggleArea(a.id, e.target.checked), e.target.checked ? "Area opened" : "Area closed")}
@@ -169,8 +169,8 @@ export function AvailabilityManager({
                         aria-pressed={t.is_active}
                         onClick={() => run(() => toggleTable(t.id, !t.is_active), t.is_active ? `${t.label} taken offline` : `${t.label} back online`)}
                         className={cn(
-                          "rounded-sm border px-2 py-1 text-xs",
-                          t.is_active ? "border-forest-600/40 bg-forest-50 text-forest-700" : "border-line text-ink-muted line-through",
+                          "rounded-md px-2.5 py-1 text-xs transition-colors",
+                          t.is_active ? "bg-pine-700 text-cream-50 hover:bg-pine-800" : "bg-canvas text-ink-muted line-through hover:text-ink",
                         )}
                       >
                         {t.label} · {t.seats}
@@ -185,7 +185,7 @@ export function AvailabilityManager({
 
       {isManager ? (
         <Card title="Weekly hours" description="Times are Dhaka time. A closing time earlier than opening means closing after midnight.">
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {hours.map((h) => (
               <HoursRow key={h.weekday} h={h} pending={pending} run={run} />
             ))}
@@ -194,7 +194,7 @@ export function AvailabilityManager({
       ) : null}
 
       {isManager ? (
-        <Card title="Holiday & Ramadan hours" description="Overrides replace the weekly hours for the chosen dates (the newest override wins).">
+        <Card title="Holiday and Ramadan hours" description="These replace the weekly hours on the chosen dates. If two overlap, the newest one counts.">
           <form
             className="grid gap-3 sm:grid-cols-2"
             onSubmit={(e) => {
@@ -212,7 +212,7 @@ export function AvailabilityManager({
               <Input id="o-end" type="date" value={override.endsOn} onChange={(e) => setOverride({ ...override, endsOn: e.target.value })} />
             </Field>
             <label className="flex items-center gap-2 text-sm sm:col-span-2">
-              <input type="checkbox" checked={override.isClosed} onChange={(e) => setOverride({ ...override, isClosed: e.target.checked })} />
+              <input type="checkbox" className="accent-[var(--primary)]" checked={override.isClosed} onChange={(e) => setOverride({ ...override, isClosed: e.target.checked })} />
               Closed all day
             </label>
             {!override.isClosed ? (
@@ -226,13 +226,13 @@ export function AvailabilityManager({
               </>
             ) : null}
             <Button type="submit" disabled={pending} className="sm:col-span-2 sm:justify-self-start">
-              <Plus /> Add override
+              Save these hours
             </Button>
           </form>
-          <ul className="mt-6 divide-y divide-line border-t border-line text-sm">
-            {overrides.length === 0 ? <li className="py-4 text-ink-muted">No upcoming overrides.</li> : null}
+          <ul className="mt-8 space-y-2 text-sm">
+            {overrides.length === 0 ? <li className="text-ink-muted">No special hours coming up.</li> : null}
             {overrides.map((o) => (
-              <li key={o.id} className="flex items-center gap-3 py-3">
+              <li key={o.id} className="flex items-center gap-3 rounded-md bg-surface px-4 py-3">
                 <span className="flex-1">
                   <span className="font-semibold">{o.label}</span> · {o.starts_on}
                   {o.ends_on !== o.starts_on ? ` → ${o.ends_on}` : ""}
@@ -240,9 +240,9 @@ export function AvailabilityManager({
                     {o.is_closed ? "Closed" : `${o.opens_at?.slice(0, 5)} – ${o.closes_at?.slice(0, 5)}`}
                   </span>
                 </span>
-                <Button variant="ghost" size="sm" aria-label="Remove override" disabled={pending} onClick={() => run(() => deleteHoursOverride(o.id), "Override removed")}>
-                  <Trash2 />
-                </Button>
+                <button type="button" className="text-xs text-ink-muted hover:text-danger" disabled={pending} onClick={() => run(() => deleteHoursOverride(o.id), "Special hours removed")}>
+                  Remove
+                </button>
               </li>
             ))}
           </ul>
@@ -269,11 +269,11 @@ function HoursRow({
   return (
     <li className="flex flex-wrap items-center gap-3 text-sm">
       <span className="w-24 font-semibold">{WEEKDAYS[h.weekday]}</span>
-      <Input type="time" value={opens} disabled={closed} onChange={(e) => setOpens(e.target.value)} className="h-9 w-28" aria-label={`${WEEKDAYS[h.weekday]} opens`} />
+      <Input type="time" value={opens} disabled={closed} onChange={(e) => setOpens(e.target.value)} className="h-9 w-32 px-2.5 text-sm" aria-label={`${WEEKDAYS[h.weekday]} opens`} />
       <span className="text-ink-muted">–</span>
-      <Input type="time" value={closes} disabled={closed} onChange={(e) => setCloses(e.target.value)} className="h-9 w-28" aria-label={`${WEEKDAYS[h.weekday]} closes`} />
+      <Input type="time" value={closes} disabled={closed} onChange={(e) => setCloses(e.target.value)} className="h-9 w-32 px-2.5 text-sm" aria-label={`${WEEKDAYS[h.weekday]} closes`} />
       <label className="flex items-center gap-1.5 text-ink-muted">
-        <input type="checkbox" checked={closed} onChange={(e) => setClosed(e.target.checked)} /> Closed
+        <input type="checkbox" className="accent-[var(--primary)]" checked={closed} onChange={(e) => setClosed(e.target.checked)} /> Closed
       </label>
       {dirty ? (
         <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => updateOpeningHours(h.weekday, opens, closes, closed), `${WEEKDAYS[h.weekday]} updated`)}>

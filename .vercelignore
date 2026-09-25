@@ -1,0 +1,21 @@
+# Files Vercel must never upload when deploying the website.
+# Paths start with "/" so they only match at the project root (src/lib/supabase is needed).
+
+# Secrets (real keys live in these; see CLAUDE.md "Open items")
+.env
+.env*
+/supabase/
+/backend/
+
+# Not part of the website build
+/render.yaml
+/Media/
+/.venv/
+/.claude/
+/docs/
+/coverage/
+*.log
+/25-9-26 new media/
+
+# Local Node.js tooling (nodeenv); its presence makes Vercel build the site as a Python app
+/requirements.txt

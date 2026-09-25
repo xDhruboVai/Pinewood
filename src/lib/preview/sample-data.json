@@ -1,0 +1,2070 @@
+{
+ "areas": [
+  {
+   "id": "a0000000-0000-4000-8000-000000000001",
+   "slug": "fireplace",
+   "name_en": "Fireplace Corner",
+   "name_bn": "ফায়ারপ্লেস কর্নার",
+   "description_en": "Low armchairs around the hearth. Best for slow evenings and winter dinners.",
+   "description_bn": "আগুনের পাশে নিচু আরামকেদারা। ধীর সন্ধ্যা আর শীতের ডিনারের জন্য সেরা।",
+   "is_active": true,
+   "sort_order": 1
+  },
+  {
+   "id": "a0000000-0000-4000-8000-000000000002",
+   "slug": "study",
+   "name_en": "Quiet Study Spots",
+   "name_bn": "নিরিবিলি স্টাডি কর্নার",
+   "description_en": "Warm desk lamps, power outlets at every seat, and an unhurried hush.",
+   "description_bn": "উষ্ণ ডেস্ক ল্যাম্প, প্রতিটি আসনে পাওয়ার আউটলেট, আর শান্ত পরিবেশ।",
+   "is_active": true,
+   "sort_order": 2
+  },
+  {
+   "id": "a0000000-0000-4000-8000-000000000003",
+   "slug": "timber-hall",
+   "name_en": "Timber Hall",
+   "name_bn": "টিম্বার হল",
+   "description_en": "Our main dining room of pine panels, amber light and acoustic Bangla music.",
+   "description_bn": "পাইন কাঠের প্যানেল, অ্যাম্বার আলো আর অ্যাকুস্টিক বাংলা গানে ভরা মূল ডাইনিং রুম।",
+   "is_active": true,
+   "sort_order": 3
+  },
+  {
+   "id": "a0000000-0000-4000-8000-000000000004",
+   "slug": "rooftop",
+   "name_en": "Rooftop & Outdoor",
+   "name_bn": "রুফটপ ও আউটডোর",
+   "description_en": "Open air under string lights, with potted pines and the Dhanmondi skyline.",
+   "description_bn": "খোলা আকাশের নিচে স্ট্রিং লাইট, টবের পাইন গাছ আর ধানমন্ডির স্কাইলাইন।",
+   "is_active": true,
+   "sort_order": 4
+  }
+ ],
+ "opening_hours": [
+  {
+   "weekday": 0,
+   "opens_at": "10:00",
+   "closes_at": "22:00",
+   "is_closed": false
+  },
+  {
+   "weekday": 1,
+   "opens_at": "10:00",
+   "closes_at": "22:00",
+   "is_closed": false
+  },
+  {
+   "weekday": 2,
+   "opens_at": "10:00",
+   "closes_at": "22:00",
+   "is_closed": false
+  },
+  {
+   "weekday": 3,
+   "opens_at": "10:00",
+   "closes_at": "22:00",
+   "is_closed": false
+  },
+  {
+   "weekday": 4,
+   "opens_at": "10:00",
+   "closes_at": "22:00",
+   "is_closed": false
+  },
+  {
+   "weekday": 5,
+   "opens_at": "11:00",
+   "closes_at": "22:00",
+   "is_closed": false
+  },
+  {
+   "weekday": 6,
+   "opens_at": "10:00",
+   "closes_at": "22:00",
+   "is_closed": false
+  }
+ ],
+ "menu": [
+  {
+   "id": "cat-finger-foods",
+   "slug": "finger-foods",
+   "section": "starters",
+   "name_en": "Finger Foods",
+   "name_bn": "ফিঙ্গার ফুড",
+   "sort_order": 1,
+   "menu_items": [
+    {
+     "id": "item-buffalo-wings",
+     "category_id": "cat-finger-foods",
+     "slug": "buffalo-wings",
+     "name_en": "Buffalo Wings",
+     "name_bn": "বাফেলো উইংস",
+     "description_en": "Tossed in house buffalo sauce",
+     "description_bn": "হাউস বাফেলো সসে মাখানো",
+     "price": 379,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "spicy"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 1,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-fish-cake",
+     "category_id": "cat-finger-foods",
+     "slug": "fish-cake",
+     "name_en": "Fish Cake",
+     "name_bn": "ফিশ কেক",
+     "description_en": "4 pieces",
+     "description_bn": "৪ পিস",
+     "price": 449,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "seafood"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 2,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-garlic-mushroom",
+     "category_id": "cat-finger-foods",
+     "slug": "garlic-mushroom",
+     "name_en": "Garlic Mushroom",
+     "name_bn": "গার্লিক মাশরুম",
+     "description_en": "Sautéed with garlic and herbs",
+     "description_bn": "রসুন ও হার্বসে সতে করা",
+     "price": 389,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 3,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-poutine",
+     "category_id": "cat-finger-foods",
+     "slug": "poutine",
+     "name_en": "Poutine",
+     "name_bn": "পুটিন",
+     "description_en": "Fries, gravy and melted cheese",
+     "description_bn": "ফ্রাই, গ্রেভি আর গলানো চিজ",
+     "price": 549,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 4,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-prawn-tempura",
+     "category_id": "cat-finger-foods",
+     "slug": "prawn-tempura",
+     "name_en": "Prawn Tempura",
+     "name_bn": "প্রন টেম্পুরা",
+     "description_en": "6 pieces",
+     "description_bn": "৬ পিস",
+     "price": 489,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "seafood"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 5,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-thai-fried-chicken",
+     "category_id": "cat-finger-foods",
+     "slug": "thai-fried-chicken",
+     "name_en": "Thai Fried Chicken",
+     "name_bn": "থাই ফ্রাইড চিকেন",
+     "description_en": "5 pieces",
+     "description_bn": "৫ পিস",
+     "price": 369,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 6,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    }
+   ]
+  },
+  {
+   "id": "cat-soup",
+   "slug": "soup",
+   "section": "starters",
+   "name_en": "Soup",
+   "name_bn": "স্যুপ",
+   "sort_order": 2,
+   "menu_items": [
+    {
+     "id": "item-chicken-vegetable-soup",
+     "category_id": "cat-soup",
+     "slug": "chicken-vegetable-soup",
+     "name_en": "Chicken Vegetable Soup",
+     "name_bn": "চিকেন ভেজিটেবল স্যুপ",
+     "description_en": null,
+     "description_bn": null,
+     "price": 249,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 1,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-cream-of-chicken",
+     "category_id": "cat-soup",
+     "slug": "cream-of-chicken",
+     "name_en": "Cream of Chicken",
+     "name_bn": "ক্রিম অব চিকেন",
+     "description_en": null,
+     "description_bn": null,
+     "price": 299,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 2,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-cream-of-mushroom",
+     "category_id": "cat-soup",
+     "slug": "cream-of-mushroom",
+     "name_en": "Cream of Mushroom",
+     "name_bn": "ক্রিম অব মাশরুম",
+     "description_en": null,
+     "description_bn": null,
+     "price": 299,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 3,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-seafood-soup",
+     "category_id": "cat-soup",
+     "slug": "seafood-soup",
+     "name_en": "Seafood Soup",
+     "name_bn": "সি-ফুড স্যুপ",
+     "description_en": null,
+     "description_bn": null,
+     "price": 339,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "seafood"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 4,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-thai-soup",
+     "category_id": "cat-soup",
+     "slug": "thai-soup",
+     "name_en": "Thai Soup",
+     "name_bn": "থাই স্যুপ",
+     "description_en": "Thick or clear",
+     "description_bn": "থিক অথবা ক্লিয়ার",
+     "price": 249,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "spicy"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 5,
+     "menu_item_variants": [
+      {
+       "id": "var-16",
+       "item_id": "item-thai-soup",
+       "name_en": "Thick",
+       "name_bn": "থিক",
+       "price_delta": 0,
+       "is_default": true,
+       "sort_order": 1
+      },
+      {
+       "id": "var-17",
+       "item_id": "item-thai-soup",
+       "name_en": "Clear",
+       "name_bn": "ক্লিয়ার",
+       "price_delta": 0,
+       "is_default": false,
+       "sort_order": 2
+      }
+     ],
+     "menu_item_addons": []
+    }
+   ]
+  },
+  {
+   "id": "cat-salad",
+   "slug": "salad",
+   "section": "starters",
+   "name_en": "Salad",
+   "name_bn": "সালাদ",
+   "sort_order": 3,
+   "menu_items": [
+    {
+     "id": "item-chicken-cashew-nut-salad",
+     "category_id": "cat-salad",
+     "slug": "chicken-cashew-nut-salad",
+     "name_en": "Chicken Cashew Nut Salad",
+     "name_bn": "চিকেন কাজুবাদাম সালাদ",
+     "description_en": null,
+     "description_bn": null,
+     "price": 419,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "contains_nuts"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 1,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-grilled-chicken-salad",
+     "category_id": "cat-salad",
+     "slug": "grilled-chicken-salad",
+     "name_en": "Grilled Chicken Salad",
+     "name_bn": "গ্রিলড চিকেন সালাদ",
+     "description_en": null,
+     "description_bn": null,
+     "price": 409,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 2,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-seafood-salad",
+     "category_id": "cat-salad",
+     "slug": "seafood-salad",
+     "name_en": "Seafood Salad",
+     "name_bn": "সি-ফুড সালাদ",
+     "description_en": null,
+     "description_bn": null,
+     "price": 549,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "seafood"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 3,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    }
+   ]
+  },
+  {
+   "id": "cat-chicken-specials",
+   "slug": "chicken-specials",
+   "section": "mains",
+   "name_en": "Chicken Specials",
+   "name_bn": "চিকেন স্পেশাল",
+   "sort_order": 10,
+   "menu_items": [
+    {
+     "id": "item-baby-chicken-thai-steak",
+     "category_id": "cat-chicken-specials",
+     "slug": "baby-chicken-thai-steak",
+     "name_en": "Baby Chicken Thai Steak",
+     "name_bn": "বেবি চিকেন থাই স্টেক",
+     "description_en": "Served with three sides",
+     "description_bn": "তিনটি সাইডসহ পরিবেশিত",
+     "price": 599,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 1,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-bbq-chicken",
+     "category_id": "cat-chicken-specials",
+     "slug": "bbq-chicken",
+     "name_en": "BBQ Chicken",
+     "name_bn": "বিবিকিউ চিকেন",
+     "description_en": "Served with three sides",
+     "description_bn": "তিনটি সাইডসহ পরিবেশিত",
+     "price": 599,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 2,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-chicken-pepper-mushroom",
+     "category_id": "cat-chicken-specials",
+     "slug": "chicken-pepper-mushroom",
+     "name_en": "Chicken Pepper with Mushroom",
+     "name_bn": "চিকেন পেপার উইথ মাশরুম",
+     "description_en": "Served with three sides",
+     "description_bn": "তিনটি সাইডসহ পরিবেশিত",
+     "price": 769,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "chef_special"
+     ],
+     "is_available": true,
+     "is_featured": true,
+     "sort_order": 3,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-grilled-cheesy-buffalo-chicken",
+     "category_id": "cat-chicken-specials",
+     "slug": "grilled-cheesy-buffalo-chicken",
+     "name_en": "Grilled Cheesy Buffalo Chicken",
+     "name_bn": "গ্রিলড চিজি বাফেলো চিকেন",
+     "description_en": "Served with three sides",
+     "description_bn": "তিনটি সাইডসহ পরিবেশিত",
+     "price": 649,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "spicy",
+      "chef_special"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 4,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-mexican-chicken",
+     "category_id": "cat-chicken-specials",
+     "slug": "mexican-chicken",
+     "name_en": "Mexican Chicken",
+     "name_bn": "মেক্সিকান চিকেন",
+     "description_en": "Served with three sides",
+     "description_bn": "তিনটি সাইডসহ পরিবেশিত",
+     "price": 599,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "spicy"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 5,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-stuffed-chicken",
+     "category_id": "cat-chicken-specials",
+     "slug": "stuffed-chicken",
+     "name_en": "Stuffed Chicken",
+     "name_bn": "স্টাফড চিকেন",
+     "description_en": "Served with three sides",
+     "description_bn": "তিনটি সাইডসহ পরিবেশিত",
+     "price": 649,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 6,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    }
+   ]
+  },
+  {
+   "id": "cat-pine-sets",
+   "slug": "pine-sets",
+   "section": "mains",
+   "name_en": "Pine Set Menus",
+   "name_bn": "পাইন সেট মেনু",
+   "sort_order": 11,
+   "menu_items": [
+    {
+     "id": "item-pine-1",
+     "category_id": "cat-pine-sets",
+     "slug": "pine-1",
+     "name_en": "Pine 1",
+     "name_bn": "পাইন ১",
+     "description_en": "Fried rice, chicken basil leaf, Thai veg, fried chicken",
+     "description_bn": "ফ্রাইড রাইস, চিকেন বেসিল লিফ, থাই ভেজ, ফ্রাইড চিকেন",
+     "price": 559,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 1,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-pine-2",
+     "category_id": "cat-pine-sets",
+     "slug": "pine-2",
+     "name_en": "Pine 2",
+     "name_bn": "পাইন ২",
+     "description_en": "Fried rice, beef or chicken chilli, Thai veg, prawn tempura",
+     "description_bn": "ফ্রাইড রাইস, বিফ অথবা চিকেন চিলি, থাই ভেজ, প্রন টেম্পুরা",
+     "price": 599,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "spicy"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 2,
+     "menu_item_variants": [
+      {
+       "id": "var-22",
+       "item_id": "item-pine-2",
+       "name_en": "Beef chilli",
+       "name_bn": "বিফ চিলি",
+       "price_delta": 0,
+       "is_default": true,
+       "sort_order": 1
+      },
+      {
+       "id": "var-23",
+       "item_id": "item-pine-2",
+       "name_en": "Chicken chilli",
+       "name_bn": "চিকেন চিলি",
+       "price_delta": 0,
+       "is_default": false,
+       "sort_order": 2
+      }
+     ],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-pine-3",
+     "category_id": "cat-pine-sets",
+     "slug": "pine-3",
+     "name_en": "Pine 3",
+     "name_bn": "পাইন ৩",
+     "description_en": "Fried rice, tenderloin steak (100 g), orange chicken, sautéed veg",
+     "description_bn": "ফ্রাইড রাইস, টেন্ডারলয়েন স্টেক (১০০ গ্রাম), অরেঞ্জ চিকেন, সতে ভেজ",
+     "price": 999,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "chef_special"
+     ],
+     "is_available": true,
+     "is_featured": true,
+     "sort_order": 3,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-pine-4",
+     "category_id": "cat-pine-sets",
+     "slug": "pine-4",
+     "name_en": "Pine 4",
+     "name_bn": "পাইন ৪",
+     "description_en": "Fried rice, masala chicken, Thai veg, fried chicken",
+     "description_bn": "ফ্রাইড রাইস, মসলা চিকেন, থাই ভেজ, ফ্রাইড চিকেন",
+     "price": 539,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 4,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-pine-5",
+     "category_id": "cat-pine-sets",
+     "slug": "pine-5",
+     "name_en": "Pine 5",
+     "name_bn": "পাইন ৫",
+     "description_en": "Fried rice, teriyaki beef, chicken shashlik, Thai veg",
+     "description_bn": "ফ্রাইড রাইস, তেরিয়াকি বিফ, চিকেন শাসলিক, থাই ভেজ",
+     "price": 599,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 5,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    }
+   ]
+  },
+  {
+   "id": "cat-seafood-sets",
+   "slug": "seafood-sets",
+   "section": "mains",
+   "name_en": "Seafood Set Menus",
+   "name_bn": "সি-ফুড সেট মেনু",
+   "sort_order": 12,
+   "menu_items": [
+    {
+     "id": "item-ocean-one",
+     "category_id": "cat-seafood-sets",
+     "slug": "ocean-one",
+     "name_en": "Ocean One",
+     "name_bn": "ওশান ওয়ান",
+     "description_en": "Fish steak, prawn tempura, squid with basil leaf, yellow rice",
+     "description_bn": "ফিশ স্টেক, প্রন টেম্পুরা, বেসিল পাতায় স্কুইড, ইয়েলো রাইস",
+     "price": 899,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "seafood"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 1,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-ocean-two",
+     "category_id": "cat-seafood-sets",
+     "slug": "ocean-two",
+     "name_en": "Ocean Two",
+     "name_bn": "ওশান টু",
+     "description_en": "Fried dory fish, black pepper fish, grilled prawn, yellow rice",
+     "description_bn": "ফ্রাইড ডোরি ফিশ, ব্ল্যাক পেপার ফিশ, গ্রিলড প্রন, ইয়েলো রাইস",
+     "price": 949,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "seafood"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 2,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-ocean-three",
+     "category_id": "cat-seafood-sets",
+     "slug": "ocean-three",
+     "name_en": "Ocean Three",
+     "name_bn": "ওশান থ্রি",
+     "description_en": "Grilled king prawn, spaghetti aglio e olio, aromatic potato cubes, yellow rice",
+     "description_bn": "গ্রিলড কিং প্রন, স্প্যাগেটি আলিও ই অলিও, সুগন্ধি আলুর কিউব, ইয়েলো রাইস",
+     "price": 1449,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "seafood",
+      "chef_special"
+     ],
+     "is_available": true,
+     "is_featured": true,
+     "sort_order": 3,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-ocean-four",
+     "category_id": "cat-seafood-sets",
+     "slug": "ocean-four",
+     "name_en": "Ocean Four",
+     "name_bn": "ওশান ফোর",
+     "description_en": "Pan-fried dory fish, fried calamari, black pepper fish, yellow rice",
+     "description_bn": "প্যান-ফ্রাইড ডোরি ফিশ, ফ্রাইড ক্যালামারি, ব্ল্যাক পেপার ফিশ, ইয়েলো রাইস",
+     "price": 799,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "seafood"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 4,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-seafood-platter",
+     "category_id": "cat-seafood-sets",
+     "slug": "seafood-platter",
+     "name_en": "Seafood Platter",
+     "name_bn": "সি-ফুড প্ল্যাটার",
+     "description_en": "Garlic rice with prawn, fish balls, grilled prawn & squid, fried dory, garden salad, garlic mayo, tomato salsa",
+     "description_bn": "প্রনসহ গার্লিক রাইস, ফিশ বল, গ্রিলড প্রন ও স্কুইড, ফ্রাইড ডোরি, গার্ডেন সালাদ, গার্লিক মেয়ো, টমেটো সালসা",
+     "price": 999,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "seafood"
+     ],
+     "is_available": true,
+     "is_featured": true,
+     "sort_order": 5,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    }
+   ]
+  },
+  {
+   "id": "cat-pasta",
+   "slug": "pasta",
+   "section": "mains",
+   "name_en": "Pasta",
+   "name_bn": "পাস্তা",
+   "sort_order": 13,
+   "menu_items": [
+    {
+     "id": "item-american-mac-cheese",
+     "category_id": "cat-pasta",
+     "slug": "american-mac-cheese",
+     "name_en": "American Mac & Cheese",
+     "name_bn": "আমেরিকান ম্যাক অ্যান্ড চিজ",
+     "description_en": "Macaroni with cream sauce, chicken & cheddar",
+     "description_bn": "ক্রিম সস, চিকেন ও চেডার চিজসহ ম্যাকারনি",
+     "price": 499,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 1,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-bbq-grilled-chicken-pasta",
+     "category_id": "cat-pasta",
+     "slug": "bbq-grilled-chicken-pasta",
+     "name_en": "BBQ Grilled Chicken Pasta",
+     "name_bn": "বিবিকিউ গ্রিলড চিকেন পাস্তা",
+     "description_en": "Penne with BBQ sauce, chicken, onion & capsicum",
+     "description_bn": "বিবিকিউ সস, চিকেন, পেঁয়াজ ও ক্যাপসিকামসহ পেনে",
+     "price": 399,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 2,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-carbonara",
+     "category_id": "cat-pasta",
+     "slug": "carbonara",
+     "name_en": "Carbonara",
+     "name_bn": "কার্বোনারা",
+     "description_en": "Fettuccine with cream sauce",
+     "description_bn": "ক্রিম সসে ফেটুচিনি",
+     "price": 649,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "chef_special"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 3,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-creamy-chicken-pasta",
+     "category_id": "cat-pasta",
+     "slug": "creamy-chicken-pasta",
+     "name_en": "Creamy Chicken Pasta",
+     "name_bn": "ক্রিমি চিকেন পাস্তা",
+     "description_en": "Cream sauce, chicken & mushroom",
+     "description_bn": "ক্রিম সস, চিকেন ও মাশরুম",
+     "price": 419,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 4,
+     "menu_item_variants": [
+      {
+       "id": "var-18",
+       "item_id": "item-creamy-chicken-pasta",
+       "name_en": "Penne",
+       "name_bn": "পেনে",
+       "price_delta": 0,
+       "is_default": true,
+       "sort_order": 1
+      },
+      {
+       "id": "var-19",
+       "item_id": "item-creamy-chicken-pasta",
+       "name_en": "Spaghetti",
+       "name_bn": "স্প্যাগেটি",
+       "price_delta": 0,
+       "is_default": false,
+       "sort_order": 2
+      }
+     ],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-seafood-pasta",
+     "category_id": "cat-pasta",
+     "slug": "seafood-pasta",
+     "name_en": "Seafood Pasta",
+     "name_bn": "সি-ফুড পাস্তা",
+     "description_en": "Seafood in tomato sauce",
+     "description_bn": "টমেটো সসে সি-ফুড",
+     "price": 499,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "seafood"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 5,
+     "menu_item_variants": [
+      {
+       "id": "var-20",
+       "item_id": "item-seafood-pasta",
+       "name_en": "Penne",
+       "name_bn": "পেনে",
+       "price_delta": 0,
+       "is_default": true,
+       "sort_order": 1
+      },
+      {
+       "id": "var-21",
+       "item_id": "item-seafood-pasta",
+       "name_en": "Spaghetti",
+       "name_bn": "স্প্যাগেটি",
+       "price_delta": 0,
+       "is_default": false,
+       "sort_order": 2
+      }
+     ],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-spaghetti-garlic-prawn",
+     "category_id": "cat-pasta",
+     "slug": "spaghetti-garlic-prawn",
+     "name_en": "Spaghetti with Garlic & Prawn",
+     "name_bn": "গার্লিক প্রন স্প্যাগেটি",
+     "description_en": "Olive oil, chilli flakes & herbs",
+     "description_bn": "অলিভ অয়েল, চিলি ফ্লেক্স ও হার্বস",
+     "price": 419,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "seafood",
+      "spicy"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 6,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    }
+   ]
+  },
+  {
+   "id": "cat-chowmein-noodles",
+   "slug": "chowmein-noodles",
+   "section": "mains",
+   "name_en": "Chowmein & Noodles",
+   "name_bn": "চাউমিন ও নুডলস",
+   "sort_order": 14,
+   "menu_items": [
+    {
+     "id": "item-chowmein",
+     "category_id": "cat-chowmein-noodles",
+     "slug": "chowmein",
+     "name_en": "Chowmein",
+     "name_bn": "চাউমিন",
+     "description_en": "Chicken or prawn",
+     "description_bn": "চিকেন অথবা প্রন",
+     "price": 349,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 1,
+     "menu_item_variants": [
+      {
+       "id": "var-12",
+       "item_id": "item-chowmein",
+       "name_en": "Chicken",
+       "name_bn": "চিকেন",
+       "price_delta": 0,
+       "is_default": true,
+       "sort_order": 1
+      },
+      {
+       "id": "var-13",
+       "item_id": "item-chowmein",
+       "name_en": "Prawn",
+       "name_bn": "প্রন",
+       "price_delta": 0,
+       "is_default": false,
+       "sort_order": 2
+      }
+     ],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-seafood-chowmein",
+     "category_id": "cat-chowmein-noodles",
+     "slug": "seafood-chowmein",
+     "name_en": "Seafood Chowmein",
+     "name_bn": "সি-ফুড চাউমিন",
+     "description_en": null,
+     "description_bn": null,
+     "price": 449,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "seafood"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 2,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-thai-noodles",
+     "category_id": "cat-chowmein-noodles",
+     "slug": "thai-noodles",
+     "name_en": "Thai Noodles",
+     "name_bn": "থাই নুডলস",
+     "description_en": "Chicken or prawn",
+     "description_bn": "চিকেন অথবা প্রন",
+     "price": 379,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "spicy"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 3,
+     "menu_item_variants": [
+      {
+       "id": "var-14",
+       "item_id": "item-thai-noodles",
+       "name_en": "Chicken",
+       "name_bn": "চিকেন",
+       "price_delta": 0,
+       "is_default": true,
+       "sort_order": 1
+      },
+      {
+       "id": "var-15",
+       "item_id": "item-thai-noodles",
+       "name_en": "Prawn",
+       "name_bn": "প্রন",
+       "price_delta": 0,
+       "is_default": false,
+       "sort_order": 2
+      }
+     ],
+     "menu_item_addons": []
+    }
+   ]
+  },
+  {
+   "id": "cat-burgers",
+   "slug": "burgers",
+   "section": "mains",
+   "name_en": "Burgers",
+   "name_bn": "বার্গার",
+   "sort_order": 15,
+   "menu_items": [
+    {
+     "id": "item-beef-cheese-burger",
+     "category_id": "cat-burgers",
+     "slug": "beef-cheese-burger",
+     "name_en": "Beef Cheese Burger",
+     "name_bn": "বিফ চিজ বার্গার",
+     "description_en": "Served with fries",
+     "description_bn": "ফ্রাইসহ পরিবেশিত",
+     "price": 379,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 1,
+     "menu_item_variants": [],
+     "menu_item_addons": [
+      {
+       "id": "addon-0",
+       "item_id": "item-beef-cheese-burger",
+       "name_en": "Extra cheese",
+       "name_bn": "এক্সট্রা চিজ",
+       "price": 50,
+       "is_available": true,
+       "sort_order": 1
+      }
+     ]
+    },
+    {
+     "id": "item-chicken-cheese-burger",
+     "category_id": "cat-burgers",
+     "slug": "chicken-cheese-burger",
+     "name_en": "Chicken Cheese Burger",
+     "name_bn": "চিকেন চিজ বার্গার",
+     "description_en": "Served with fries",
+     "description_bn": "ফ্রাইসহ পরিবেশিত",
+     "price": 309,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 2,
+     "menu_item_variants": [],
+     "menu_item_addons": [
+      {
+       "id": "addon-1",
+       "item_id": "item-chicken-cheese-burger",
+       "name_en": "Extra cheese",
+       "name_bn": "এক্সট্রা চিজ",
+       "price": 50,
+       "is_available": true,
+       "sort_order": 1
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "cat-sandwiches",
+   "slug": "sandwiches",
+   "section": "mains",
+   "name_en": "Sandwiches",
+   "name_bn": "স্যান্ডউইচ",
+   "sort_order": 16,
+   "menu_items": [
+    {
+     "id": "item-beef-sandwich",
+     "category_id": "cat-sandwiches",
+     "slug": "beef-sandwich",
+     "name_en": "Beef Sandwich",
+     "name_bn": "বিফ স্যান্ডউইচ",
+     "description_en": "Served with fries",
+     "description_bn": "ফ্রাইসহ পরিবেশিত",
+     "price": 369,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 1,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-chicken-tikka-sandwich",
+     "category_id": "cat-sandwiches",
+     "slug": "chicken-tikka-sandwich",
+     "name_en": "Chicken Tikka Sandwich",
+     "name_bn": "চিকেন টিক্কা স্যান্ডউইচ",
+     "description_en": "Served with fries",
+     "description_bn": "ফ্রাইসহ পরিবেশিত",
+     "price": 399,
+     "image_url": null,
+     "tags": [
+      "halal",
+      "spicy"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 2,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-club-sandwich",
+     "category_id": "cat-sandwiches",
+     "slug": "club-sandwich",
+     "name_en": "Club Sandwich",
+     "name_bn": "ক্লাব স্যান্ডউইচ",
+     "description_en": "Served with fries",
+     "description_bn": "ফ্রাইসহ পরিবেশিত",
+     "price": 379,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 3,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-smoked-chicken-sandwich",
+     "category_id": "cat-sandwiches",
+     "slug": "smoked-chicken-sandwich",
+     "name_en": "Smoked Chicken Sandwich",
+     "name_bn": "স্মোকড চিকেন স্যান্ডউইচ",
+     "description_en": "Served with fries",
+     "description_bn": "ফ্রাইসহ পরিবেশিত",
+     "price": 339,
+     "image_url": null,
+     "tags": [
+      "halal"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 4,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    }
+   ]
+  },
+  {
+   "id": "cat-coffee",
+   "slug": "coffee",
+   "section": "coffee",
+   "name_en": "Coffee",
+   "name_bn": "কফি",
+   "sort_order": 20,
+   "menu_items": [
+    {
+     "id": "item-americano",
+     "category_id": "cat-coffee",
+     "slug": "americano",
+     "name_en": "Americano",
+     "name_bn": "আমেরিকানো",
+     "description_en": null,
+     "description_bn": null,
+     "price": 189,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 1,
+     "menu_item_variants": [
+      {
+       "id": "var-0",
+       "item_id": "item-americano",
+       "name_en": "Single shot",
+       "name_bn": "সিঙ্গেল শট",
+       "price_delta": 0,
+       "is_default": true,
+       "sort_order": 1
+      },
+      {
+       "id": "var-1",
+       "item_id": "item-americano",
+       "name_en": "Double shot",
+       "name_bn": "ডাবল শট",
+       "price_delta": 0,
+       "is_default": false,
+       "sort_order": 2
+      }
+     ],
+     "menu_item_addons": [
+      {
+       "id": "addon-2",
+       "item_id": "item-americano",
+       "name_en": "Extra espresso shot",
+       "name_bn": "এক্সট্রা এসপ্রেসো শট",
+       "price": 60,
+       "is_available": true,
+       "sort_order": 1
+      }
+     ]
+    },
+    {
+     "id": "item-cappuccino",
+     "category_id": "cat-coffee",
+     "slug": "cappuccino",
+     "name_en": "Cappuccino",
+     "name_bn": "ক্যাপুচিনো",
+     "description_en": null,
+     "description_bn": null,
+     "price": 229,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": true,
+     "sort_order": 2,
+     "menu_item_variants": [
+      {
+       "id": "var-2",
+       "item_id": "item-cappuccino",
+       "name_en": "Single shot",
+       "name_bn": "সিঙ্গেল শট",
+       "price_delta": 0,
+       "is_default": true,
+       "sort_order": 1
+      },
+      {
+       "id": "var-3",
+       "item_id": "item-cappuccino",
+       "name_en": "Double shot",
+       "name_bn": "ডাবল শট",
+       "price_delta": 0,
+       "is_default": false,
+       "sort_order": 2
+      }
+     ],
+     "menu_item_addons": [
+      {
+       "id": "addon-3",
+       "item_id": "item-cappuccino",
+       "name_en": "Extra espresso shot",
+       "name_bn": "এক্সট্রা এসপ্রেসো শট",
+       "price": 60,
+       "is_available": true,
+       "sort_order": 1
+      }
+     ]
+    },
+    {
+     "id": "item-latte",
+     "category_id": "cat-coffee",
+     "slug": "latte",
+     "name_en": "Latte",
+     "name_bn": "লাতে",
+     "description_en": null,
+     "description_bn": null,
+     "price": 249,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 3,
+     "menu_item_variants": [
+      {
+       "id": "var-4",
+       "item_id": "item-latte",
+       "name_en": "Single shot",
+       "name_bn": "সিঙ্গেল শট",
+       "price_delta": 0,
+       "is_default": true,
+       "sort_order": 1
+      },
+      {
+       "id": "var-5",
+       "item_id": "item-latte",
+       "name_en": "Double shot",
+       "name_bn": "ডাবল শট",
+       "price_delta": 0,
+       "is_default": false,
+       "sort_order": 2
+      }
+     ],
+     "menu_item_addons": [
+      {
+       "id": "addon-4",
+       "item_id": "item-latte",
+       "name_en": "Extra espresso shot",
+       "name_bn": "এক্সট্রা এসপ্রেসো শট",
+       "price": 60,
+       "is_available": true,
+       "sort_order": 1
+      }
+     ]
+    },
+    {
+     "id": "item-flavoured-latte",
+     "category_id": "cat-coffee",
+     "slug": "flavoured-latte",
+     "name_en": "Flavoured Latte",
+     "name_bn": "ফ্লেভার্ড লাতে",
+     "description_en": "Vanilla, hazelnut or caramel",
+     "description_bn": "ভ্যানিলা, হেজেলনাট অথবা ক্যারামেল",
+     "price": 299,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 4,
+     "menu_item_variants": [
+      {
+       "id": "var-6",
+       "item_id": "item-flavoured-latte",
+       "name_en": "Vanilla",
+       "name_bn": "ভ্যানিলা",
+       "price_delta": 0,
+       "is_default": true,
+       "sort_order": 1
+      },
+      {
+       "id": "var-7",
+       "item_id": "item-flavoured-latte",
+       "name_en": "Hazelnut",
+       "name_bn": "হেজেলনাট",
+       "price_delta": 0,
+       "is_default": false,
+       "sort_order": 2
+      },
+      {
+       "id": "var-8",
+       "item_id": "item-flavoured-latte",
+       "name_en": "Caramel",
+       "name_bn": "ক্যারামেল",
+       "price_delta": 0,
+       "is_default": false,
+       "sort_order": 3
+      }
+     ],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-espresso-single",
+     "category_id": "cat-coffee",
+     "slug": "espresso-single",
+     "name_en": "Espresso — Single",
+     "name_bn": "এসপ্রেসো — সিঙ্গেল",
+     "description_en": null,
+     "description_bn": null,
+     "price": 169,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 5,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-espresso-double",
+     "category_id": "cat-coffee",
+     "slug": "espresso-double",
+     "name_en": "Espresso — Double",
+     "name_bn": "এসপ্রেসো — ডাবল",
+     "description_en": null,
+     "description_bn": null,
+     "price": 249,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 6,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-iced-americano",
+     "category_id": "cat-coffee",
+     "slug": "iced-americano",
+     "name_en": "Iced Americano",
+     "name_bn": "আইস আমেরিকানো",
+     "description_en": null,
+     "description_bn": null,
+     "price": 219,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 7,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-iced-latte",
+     "category_id": "cat-coffee",
+     "slug": "iced-latte",
+     "name_en": "Iced Latte",
+     "name_bn": "আইস লাতে",
+     "description_en": "Vanilla, hazelnut or caramel",
+     "description_bn": "ভ্যানিলা, হেজেলনাট অথবা ক্যারামেল",
+     "price": 319,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 8,
+     "menu_item_variants": [
+      {
+       "id": "var-9",
+       "item_id": "item-iced-latte",
+       "name_en": "Vanilla",
+       "name_bn": "ভ্যানিলা",
+       "price_delta": 0,
+       "is_default": true,
+       "sort_order": 1
+      },
+      {
+       "id": "var-10",
+       "item_id": "item-iced-latte",
+       "name_en": "Hazelnut",
+       "name_bn": "হেজেলনাট",
+       "price_delta": 0,
+       "is_default": false,
+       "sort_order": 2
+      },
+      {
+       "id": "var-11",
+       "item_id": "item-iced-latte",
+       "name_en": "Caramel",
+       "name_bn": "ক্যারামেল",
+       "price_delta": 0,
+       "is_default": false,
+       "sort_order": 3
+      }
+     ],
+     "menu_item_addons": []
+    }
+   ]
+  },
+  {
+   "id": "cat-hot-drinks",
+   "slug": "hot-drinks",
+   "section": "coffee",
+   "name_en": "Tea & Hot Drinks",
+   "name_bn": "চা ও গরম পানীয়",
+   "sort_order": 21,
+   "menu_items": [
+    {
+     "id": "item-chai-latte",
+     "category_id": "cat-hot-drinks",
+     "slug": "chai-latte",
+     "name_en": "Chai Latte",
+     "name_bn": "চাই লাতে",
+     "description_en": null,
+     "description_bn": null,
+     "price": 199,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 1,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-flavoured-tea",
+     "category_id": "cat-hot-drinks",
+     "slug": "flavoured-tea",
+     "name_en": "Flavoured Tea",
+     "name_bn": "ফ্লেভার্ড টি",
+     "description_en": null,
+     "description_bn": null,
+     "price": 119,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 2,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    }
+   ]
+  },
+  {
+   "id": "cat-desserts",
+   "slug": "desserts",
+   "section": "desserts",
+   "name_en": "Desserts",
+   "name_bn": "ডেজার্ট",
+   "sort_order": 30,
+   "menu_items": [
+    {
+     "id": "item-biscoff-cheesecake",
+     "category_id": "cat-desserts",
+     "slug": "biscoff-cheesecake",
+     "name_en": "Biscoff Cheesecake",
+     "name_bn": "বিসকফ চিজকেক",
+     "description_en": null,
+     "description_bn": null,
+     "price": 369,
+     "image_url": null,
+     "tags": [
+      "vegetarian",
+      "chef_special"
+     ],
+     "is_available": true,
+     "is_featured": true,
+     "sort_order": 1,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-blueberry-cheesecake",
+     "category_id": "cat-desserts",
+     "slug": "blueberry-cheesecake",
+     "name_en": "Blueberry Cheesecake",
+     "name_bn": "ব্লুবেরি চিজকেক",
+     "description_en": null,
+     "description_bn": null,
+     "price": 369,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 2,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-oreo-cheesecake",
+     "category_id": "cat-desserts",
+     "slug": "oreo-cheesecake",
+     "name_en": "Oreo Cheesecake",
+     "name_bn": "ওরিও চিজকেক",
+     "description_en": null,
+     "description_bn": null,
+     "price": 349,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 3,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-brownie",
+     "category_id": "cat-desserts",
+     "slug": "brownie",
+     "name_en": "Brownie",
+     "name_bn": "ব্রাউনি",
+     "description_en": null,
+     "description_bn": null,
+     "price": 199,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 4,
+     "menu_item_variants": [],
+     "menu_item_addons": [
+      {
+       "id": "addon-5",
+       "item_id": "item-brownie",
+       "name_en": "Scoop of ice cream",
+       "name_bn": "এক স্কুপ আইসক্রিম",
+       "price": 120,
+       "is_available": true,
+       "sort_order": 1
+      }
+     ]
+    },
+    {
+     "id": "item-ice-cream",
+     "category_id": "cat-desserts",
+     "slug": "ice-cream",
+     "name_en": "Ice Cream",
+     "name_bn": "আইসক্রিম",
+     "description_en": "One scoop",
+     "description_bn": "এক স্কুপ",
+     "price": 169,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 5,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    }
+   ]
+  },
+  {
+   "id": "cat-freezers",
+   "slug": "freezers",
+   "section": "beverages",
+   "name_en": "Freezers",
+   "name_bn": "ফ্রিজার্স",
+   "sort_order": 40,
+   "menu_items": [
+    {
+     "id": "item-biscoff-milkshake",
+     "category_id": "cat-freezers",
+     "slug": "biscoff-milkshake",
+     "name_en": "Biscoff Milkshake",
+     "name_bn": "বিসকফ মিল্কশেক",
+     "description_en": null,
+     "description_bn": null,
+     "price": 269,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 1,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-milkshake",
+     "category_id": "cat-freezers",
+     "slug": "milkshake",
+     "name_en": "Milkshake",
+     "name_bn": "মিল্কশেক",
+     "description_en": "Chocolate, strawberry, Oreo or KitKat",
+     "description_bn": "চকলেট, স্ট্রবেরি, ওরিও অথবা কিটক্যাট",
+     "price": 269,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 2,
+     "menu_item_variants": [
+      {
+       "id": "var-24",
+       "item_id": "item-milkshake",
+       "name_en": "Chocolate",
+       "name_bn": "চকলেট",
+       "price_delta": 0,
+       "is_default": true,
+       "sort_order": 1
+      },
+      {
+       "id": "var-25",
+       "item_id": "item-milkshake",
+       "name_en": "Strawberry",
+       "name_bn": "স্ট্রবেরি",
+       "price_delta": 0,
+       "is_default": false,
+       "sort_order": 2
+      },
+      {
+       "id": "var-26",
+       "item_id": "item-milkshake",
+       "name_en": "Oreo",
+       "name_bn": "ওরিও",
+       "price_delta": 0,
+       "is_default": false,
+       "sort_order": 3
+      },
+      {
+       "id": "var-27",
+       "item_id": "item-milkshake",
+       "name_en": "KitKat",
+       "name_bn": "কিটক্যাট",
+       "price_delta": 0,
+       "is_default": false,
+       "sort_order": 4
+      }
+     ],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-coconut-shake",
+     "category_id": "cat-freezers",
+     "slug": "coconut-shake",
+     "name_en": "Coconut Shake",
+     "name_bn": "কোকোনাট শেক",
+     "description_en": null,
+     "description_bn": null,
+     "price": 259,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 3,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-frappe",
+     "category_id": "cat-freezers",
+     "slug": "frappe",
+     "name_en": "Frappé",
+     "name_bn": "ফ্রাপে",
+     "description_en": "Chocolate or vanilla",
+     "description_bn": "চকলেট অথবা ভ্যানিলা",
+     "price": 309,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 4,
+     "menu_item_variants": [
+      {
+       "id": "var-28",
+       "item_id": "item-frappe",
+       "name_en": "Chocolate",
+       "name_bn": "চকলেট",
+       "price_delta": 0,
+       "is_default": true,
+       "sort_order": 1
+      },
+      {
+       "id": "var-29",
+       "item_id": "item-frappe",
+       "name_en": "Vanilla",
+       "name_bn": "ভ্যানিলা",
+       "price_delta": 0,
+       "is_default": false,
+       "sort_order": 2
+      }
+     ],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-mango-yoghurt-smoothie",
+     "category_id": "cat-freezers",
+     "slug": "mango-yoghurt-smoothie",
+     "name_en": "Mango Yoghurt Smoothie",
+     "name_bn": "ম্যাঙ্গো ইয়োগার্ট স্মুদি",
+     "description_en": null,
+     "description_bn": null,
+     "price": 309,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 5,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-virgin-mojito",
+     "category_id": "cat-freezers",
+     "slug": "virgin-mojito",
+     "name_en": "Virgin Mojito",
+     "name_bn": "ভার্জিন মোহিতো",
+     "description_en": null,
+     "description_bn": null,
+     "price": 229,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 6,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-strawberry-mojito",
+     "category_id": "cat-freezers",
+     "slug": "strawberry-mojito",
+     "name_en": "Strawberry Mojito",
+     "name_bn": "স্ট্রবেরি মোহিতো",
+     "description_en": null,
+     "description_bn": null,
+     "price": 259,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 7,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-ocean-blue-mojito",
+     "category_id": "cat-freezers",
+     "slug": "ocean-blue-mojito",
+     "name_en": "Ocean Blue Mojito",
+     "name_bn": "ওশান ব্লু মোহিতো",
+     "description_en": null,
+     "description_bn": null,
+     "price": 259,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 8,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-italian-soda",
+     "category_id": "cat-freezers",
+     "slug": "italian-soda",
+     "name_en": "Italian Soda",
+     "name_bn": "ইতালিয়ান সোডা",
+     "description_en": "Green apple or kiwi",
+     "description_bn": "গ্রিন অ্যাপল অথবা কিউই",
+     "price": 299,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 9,
+     "menu_item_variants": [
+      {
+       "id": "var-30",
+       "item_id": "item-italian-soda",
+       "name_en": "Green apple",
+       "name_bn": "গ্রিন অ্যাপল",
+       "price_delta": 0,
+       "is_default": true,
+       "sort_order": 1
+      },
+      {
+       "id": "var-31",
+       "item_id": "item-italian-soda",
+       "name_en": "Kiwi",
+       "name_bn": "কিউই",
+       "price_delta": 0,
+       "is_default": false,
+       "sort_order": 2
+      }
+     ],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-lemonade",
+     "category_id": "cat-freezers",
+     "slug": "lemonade",
+     "name_en": "Lemonade",
+     "name_bn": "লেমোনেড",
+     "description_en": null,
+     "description_bn": null,
+     "price": 179,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 10,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-mint-lemonade",
+     "category_id": "cat-freezers",
+     "slug": "mint-lemonade",
+     "name_en": "Mint Lemonade",
+     "name_bn": "মিন্ট লেমোনেড",
+     "description_en": null,
+     "description_bn": null,
+     "price": 199,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 11,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-ginger-lemonade",
+     "category_id": "cat-freezers",
+     "slug": "ginger-lemonade",
+     "name_en": "Ginger Lemonade",
+     "name_bn": "জিঞ্জার লেমোনেড",
+     "description_en": null,
+     "description_bn": null,
+     "price": 199,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 12,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-iced-lemon-tea",
+     "category_id": "cat-freezers",
+     "slug": "iced-lemon-tea",
+     "name_en": "Iced Lemon Tea",
+     "name_bn": "আইস লেমন টি",
+     "description_en": null,
+     "description_bn": null,
+     "price": 199,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 13,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-orange-juice",
+     "category_id": "cat-freezers",
+     "slug": "orange-juice",
+     "name_en": "Orange Juice",
+     "name_bn": "অরেঞ্জ জুস",
+     "description_en": null,
+     "description_bn": null,
+     "price": 259,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 14,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    },
+    {
+     "id": "item-seasonal-fresh-juice",
+     "category_id": "cat-freezers",
+     "slug": "seasonal-fresh-juice",
+     "name_en": "Seasonal Fresh Juice",
+     "name_bn": "সিজনাল ফ্রেশ জুস",
+     "description_en": null,
+     "description_bn": null,
+     "price": 199,
+     "image_url": null,
+     "tags": [
+      "vegetarian"
+     ],
+     "is_available": true,
+     "is_featured": false,
+     "sort_order": 15,
+     "menu_item_variants": [],
+     "menu_item_addons": []
+    }
+   ]
+  }
+ ],
+ "reviews": [
+  {
+   "id": "review-0",
+   "author_name": "Placeholder Guest",
+   "author_context": "Replace before launch",
+   "rating": 5,
+   "body_en": "Sample review text. Replace this with a real guest quote about the fireplace corner.",
+   "body_bn": "নমুনা রিভিউ। ফায়ারপ্লেস কর্নার নিয়ে একজন অতিথির আসল মন্তব্য দিয়ে এটি বদলে দিন।"
+  },
+  {
+   "id": "review-1",
+   "author_name": "Placeholder Guest",
+   "author_context": "Replace before launch",
+   "rating": 5,
+   "body_en": "Sample review text. Replace this with a real guest quote about studying or working here.",
+   "body_bn": "নমুনা রিভিউ। এখানে পড়াশোনা বা কাজ নিয়ে একজন অতিথির আসল মন্তব্য দিয়ে এটি বদলে দিন।"
+  },
+  {
+   "id": "review-2",
+   "author_name": "Placeholder Guest",
+   "author_context": "Replace before launch",
+   "rating": 5,
+   "body_en": "Sample review text. Replace this with a real guest quote about the rooftop and the food.",
+   "body_bn": "নমুনা রিভিউ। রুফটপ ও খাবার নিয়ে একজন অতিথির আসল মন্তব্য দিয়ে এটি বদলে দিন।"
+  }
+ ]
+}

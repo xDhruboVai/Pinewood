@@ -2,39 +2,66 @@
 
 @custom-variant evening (&:where([data-ambiance="evening"], [data-ambiance="evening"] *));
 
-/* Brand primitives */
+/*
+  Palette taken from the printed menu: dark teal green, warm cream, mustard accents, wood tones.
+  The original scale names (forest, timber, gold) are kept and point at the new colours,
+  so existing classes pick up the new identity. pine / mustard / wood are the same colours
+  under their new names.
+*/
 @theme {
-  --color-forest-50: #eef3f0;
-  --color-forest-100: #d5e2da;
-  --color-forest-200: #aec6b8;
-  --color-forest-300: #7fa08f;
-  --color-forest-400: #557a68;
-  --color-forest-500: #3b5f4f;
-  --color-forest-600: #2d4a3e;
-  --color-forest-700: #243c32;
-  --color-forest-800: #1b2e26;
-  --color-forest-900: #121f1a;
+  --color-pine-950: #0c2325;
+  --color-pine-900: #132f32;
+  --color-pine-800: #1a3e41;
+  --color-pine-700: #214e51;
+  --color-pine-600: #2c5e61;
+  --color-pine-500: #3f7175;
+  --color-pine-300: #8fb0b1;
+  --color-pine-100: #dce8e7;
 
-  --color-timber-100: #efe6df;
-  --color-timber-200: #d9c5b6;
-  --color-timber-300: #b8977f;
-  --color-timber-400: #8c6a55;
-  --color-timber-500: #5c4033;
-  --color-timber-600: #4a3329;
-  --color-timber-700: #38271f;
-  --color-timber-800: #261a15;
+  --color-forest-50: #dce8e7;
+  --color-forest-100: #dce8e7;
+  --color-forest-200: #8fb0b1;
+  --color-forest-300: #8fb0b1;
+  --color-forest-400: #3f7175;
+  --color-forest-500: #2c5e61;
+  --color-forest-600: #214e51;
+  --color-forest-700: #1a3e41;
+  --color-forest-800: #132f32;
+  --color-forest-900: #0c2325;
 
-  --color-cream-50: #fffdf9;
-  --color-cream-100: #f7f4ef;
-  --color-cream-200: #efe9df;
-  --color-cream-300: #e3dacb;
+  --color-wood-300: #b58c6a;
+  --color-wood-500: #7a5439;
+  --color-wood-700: #4a3222;
 
-  --color-gold-300: #e6cf7f;
-  --color-gold-400: #d4af37;
-  --color-gold-600: #8e7420;
+  --color-timber-100: #ece3d1;
+  --color-timber-200: #d6c1a6;
+  --color-timber-300: #b58c6a;
+  --color-timber-400: #93694b;
+  --color-timber-500: #7a5439;
+  --color-timber-600: #5e4029;
+  --color-timber-700: #4a3222;
+  --color-timber-800: #33231a;
 
-  --font-display: var(--font-cormorant), var(--font-bn-serif), "Georgia", serif;
-  --font-sans: var(--font-manrope), var(--font-bn-sans), ui-sans-serif, system-ui, sans-serif;
+  --color-cream-50: #fbf8f1;
+  --color-cream-100: #f5efe3;
+  --color-cream-200: #ece3d1;
+  --color-cream-300: #dccfb8;
+
+  --color-mustard-300: #f0d97e;
+  --color-mustard-400: #e6c34a;
+  --color-mustard-500: #d0ab2d;
+  --color-mustard-700: #86690f;
+
+  --color-gold-300: #f0d97e;
+  --color-gold-400: #e6c34a;
+  --color-gold-600: #86690f;
+
+  --color-charcoal: #1c211f;
+
+  /* Three families. Bangla falls back to Noto Serif Bengali (script and serif slots) and Hind Siliguri (sans slot). */
+  --font-script: var(--font-kaushan), var(--font-bn-serif), cursive;
+  --font-display: var(--font-cormorant), var(--font-bn-serif), Georgia, serif;
+  --font-sans: var(--font-fira), var(--font-bn-sans), ui-sans-serif, system-ui, sans-serif;
 
   --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
 
@@ -65,42 +92,42 @@
   }
 }
 
-/* Semantic tokens — shift with ambiance */
+/* Semantic tokens. Day = cream pages; evening = the whole site in menu green. */
 :root,
 [data-ambiance="day"] {
-  --canvas: #f7f4ef;
-  --surface: #fffdf9;
-  --surface-2: #efe9df;
-  --ink: #1f2a24;
-  --ink-muted: #5f645d;
-  --line: #e3dacb;
-  --primary: #2d4a3e;
-  --primary-ink: #f7f4ef;
-  --secondary: #5c4033;
-  --accent: #d4af37;
-  --accent-ink: #8e7420;
-  --glow: rgba(212, 175, 55, 0);
-  --sky-top: #dfe8e1;
-  --sky-bottom: #f5ecd9;
+  --canvas: #f5efe3;
+  --surface: #fbf8f1;
+  --surface-2: #ece3d1;
+  --ink: #1b2a27;
+  --ink-muted: #5a625e;
+  --line: #dccfb8;
+  --primary: #214e51;
+  --primary-ink: #f5efe3;
+  --secondary: #7a5439;
+  --accent: #e6c34a;
+  --accent-ink: #86690f;
+  --glow: rgba(230, 195, 74, 0);
+  --sky-top: #dce8e7;
+  --sky-bottom: #f5efe3;
   --danger: #9b2c2c;
   color-scheme: light;
 }
 
 [data-ambiance="evening"] {
-  --canvas: #1a1512;
-  --surface: #231c17;
-  --surface-2: #2e241d;
-  --ink: #f2e9dc;
-  --ink-muted: #b8a993;
-  --line: #3b2f27;
-  --primary: #d4af37;
-  --primary-ink: #1a1512;
-  --secondary: #d9c5b6;
-  --accent: #e6cf7f;
-  --accent-ink: #e6cf7f;
-  --glow: rgba(212, 175, 55, 0.14);
-  --sky-top: #1d2a3a;
-  --sky-bottom: #6b4a3a;
+  --canvas: #132f32;
+  --surface: #1a3e41;
+  --surface-2: #1f4649;
+  --ink: #f5efe3;
+  --ink-muted: #b5c2bd;
+  --line: #2d575a;
+  --primary: #e6c34a;
+  --primary-ink: #132f32;
+  --secondary: #ece3d1;
+  --accent: #e6c34a;
+  --accent-ink: #f0d97e;
+  --glow: rgba(230, 195, 74, 0.14);
+  --sky-top: #10292b;
+  --sky-bottom: #3d5a4f;
   --danger: #f08a8a;
   color-scheme: dark;
 }
@@ -120,6 +147,51 @@
   --color-danger: var(--danger);
 }
 
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Brush-script category headings, as on the printed menu */
+@utility script {
+  font-family: var(--font-script);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+/* Uppercase practical labels */
+/* Home hero and navigation (reference design): heavy serif, thin hand script, wide-tracked sans. */
+@utility hero-serif {
+  font-family: var(--font-playfair), var(--font-bn-serif), Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+@utility hand {
+  font-family: var(--font-sacramento), var(--font-bn-serif), cursive;
+  font-weight: 400;
+  line-height: 1;
+}
+@utility font-nav {
+  font-family: var(--font-montserrat), var(--font-bn-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+@utility label {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Softens the edges of photo crops cut from the printed menu so they sit in the page */
+@utility soft-edges {
+  -webkit-mask-image: radial-gradient(ellipse 72% 70% at 50% 50%, #000 62%, transparent 100%);
+  mask-image: radial-gradient(ellipse 72% 70% at 50% 50%, #000 62%, transparent 100%);
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
@@ -130,18 +202,22 @@
     background: var(--canvas);
     color: var(--ink);
     font-family: var(--font-sans);
-    transition: background-color 0.8s var(--ease-soft), color 0.8s var(--ease-soft);
+    transition: background-color 0.6s var(--ease-soft), color 0.6s var(--ease-soft);
   }
   ::selection {
-    background: var(--accent);
-    color: #1a1512;
+    background: #e6c34a;
+    color: #132f32;
   }
   :focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid #e6c34a;
     outline-offset: 3px;
   }
   [lang="bn"] body {
     line-height: 1.75;
+  }
+  [lang="bn"] .label {
+    letter-spacing: 0.02em;
+    font-size: 0.85rem;
   }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
@@ -154,7 +230,7 @@
 }
 
 @layer components {
-  /* Subtle paper/wood grain over the canvas */
+  /* Very light paper texture, like the printed menu stock */
   .grain {
     position: relative;
     isolation: isolate;
@@ -165,44 +241,109 @@
     inset: 0;
     z-index: -1;
     pointer-events: none;
-    opacity: 0.06;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.05;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
-  [data-ambiance="evening"] .grain::before {
-    opacity: 0.1;
+  [data-ambiance="evening"] .grain::before,
+  .grain-dark::before {
+    opacity: 0.07;
+    mix-blend-mode: overlay;
   }
 
   .eyebrow {
     font-family: var(--font-sans);
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     font-weight: 600;
-    letter-spacing: 0.22em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--accent-ink);
   }
   [lang="bn"] .eyebrow {
-    letter-spacing: 0.04em;
+    letter-spacing: 0.02em;
     font-size: 0.85rem;
   }
 
   .display {
     font-family: var(--font-display);
     font-weight: 500;
-    letter-spacing: -0.015em;
-    line-height: 1.05;
+    letter-spacing: -0.01em;
+    line-height: 1.04;
   }
   [lang="bn"] .display {
     letter-spacing: 0;
     line-height: 1.3;
   }
 
-  .hairline {
-    height: 1px;
-    width: 3rem;
-    background: var(--accent);
-  }
 
   .amber-glow {
     box-shadow: 0 0 120px 40px var(--glow);
   }
+}
+
+/* Scroll reveal (src/components/site/reveal.tsx). Only hides content once JS has run. */
+.js .reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.9s var(--ease-soft),
+    transform 0.9s var(--ease-soft);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.js .reveal[data-shown] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Photo that eases in slightly when hovered inside a link or figure */
+.photo-zoom img {
+  transition: transform 1.2s var(--ease-soft);
+}
+.photo-zoom:hover img {
+  transform: scale(1.03);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .photo-zoom img {
+    transition: none;
+  }
+}
+
+/* Home hero slider: text comes in from the side the visitor swiped towards */
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--dir, 1) * 28px));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes hero-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.hero-in {
+  animation: hero-in 0.8s var(--ease-soft) both;
+  animation-delay: var(--d, 0ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-in {
+    animation: none;
+  }
+}
+
+/* Admin: lining figures in the serif, so a 1 never reads as an I in counts and times. Unlayered on purpose. */
+[data-admin] .display {
+  font-variant-numeric: lining-nums tabular-nums;
 }

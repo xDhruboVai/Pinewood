@@ -3,12 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Send } from "lucide-react";
 import { inviteStaff, updateStaffMember } from "@/actions/admin";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/form";
 import { relativeFromNow } from "./ui";
+import { cn } from "@/lib/utils";
 import type { StaffProfile, StaffRole } from "@/lib/types";
 
 export type StaffRow = StaffProfile & { email: string; lastSignIn: string | null; isMe: boolean };
@@ -30,23 +29,25 @@ export function StaffManager({ rows }: { rows: StaffRow[] }) {
     });
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
-      <section className="overflow-hidden rounded-sm border border-line bg-surface">
-        <table className="w-full text-sm">
-          <thead className="border-b border-line bg-surface-2 text-left text-xs text-ink-muted">
+    <div className="grid gap-x-16 gap-y-14 lg:grid-cols-12">
+      <section className="lg:col-span-8">
+        <table className="w-full border-separate border-spacing-y-2 text-sm">
+          <thead className="text-left text-xs text-ink-muted">
             <tr>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Role</th>
-              <th className="hidden px-4 py-3 font-medium md:table-cell">Last sign-in</th>
-              <th className="px-4 py-3 text-right font-medium">Access</th>
+              <th className="px-4 pb-1 font-normal">Name</th>
+              <th className="px-4 pb-1 font-normal">Role</th>
+              <th className="hidden px-4 pb-1 font-normal md:table-cell">Last signed in</th>
+              <th className="px-4 pb-1 text-right font-normal">
+                <span className="sr-only">Access</span>
+              </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-line">
+          <tbody>
             {rows.map((r) => (
-              <tr key={r.user_id} className={r.is_active ? "" : "opacity-60"}>
+              <tr key={r.user_id} className={cn("bg-surface [&>td:first-child]:rounded-l-md [&>td:last-child]:rounded-r-md", !r.is_active && "opacity-60")}>
                 <td className="px-4 py-3">
                   <p className="font-semibold text-ink">
-                    {r.full_name || "—"} {r.isMe ? <Badge className="ml-1">You</Badge> : null}
+                    {r.full_name || "No name"} {r.isMe ? <span className="font-normal text-ink-muted">(you)</span> : null}
                   </p>
                   <p className="text-xs text-ink-muted">{r.email}</p>
                 </td>
@@ -55,7 +56,7 @@ export function StaffManager({ rows }: { rows: StaffRow[] }) {
                     value={r.role}
                     disabled={r.isMe || pending}
                     onChange={(e) => run(() => updateStaffMember(r.user_id, { role: e.target.value as StaffRole }), "Role updated")}
-                    className="h-8 rounded-sm border border-line bg-surface px-2 text-sm"
+                    className="h-8 rounded-md bg-canvas px-2 text-sm"
                     aria-label={`Role for ${r.full_name}`}
                   >
                     <option value="manager">Manager</option>
@@ -79,9 +80,9 @@ export function StaffManager({ rows }: { rows: StaffRow[] }) {
         </table>
       </section>
 
-      <section className="rounded-sm border border-line bg-surface p-5">
-        <h2 className="font-display text-2xl text-ink">Invite staff</h2>
-        <p className="mt-1 text-sm text-ink-muted">They&apos;ll get an email link to choose a password.</p>
+      <section className="lg:col-span-4">
+        <h2 className="display text-3xl text-ink">Add someone</h2>
+        <p className="mt-1 text-sm text-ink-muted">They&apos;ll get an email with a link to choose a password.</p>
         <form
           className="mt-5 space-y-4"
           onSubmit={(e) => {
@@ -101,8 +102,8 @@ export function StaffManager({ rows }: { rows: StaffRow[] }) {
               <option value="manager">Manager</option>
             </Select>
           </Field>
-          <Button type="submit" disabled={pending} className="w-full">
-            <Send /> Send invitation
+          <Button type="submit" variant="pine" disabled={pending} className="w-full">
+            Send invitation
           </Button>
         </form>
       </section>

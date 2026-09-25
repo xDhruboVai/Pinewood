@@ -166,7 +166,6 @@ export default async function ReservationPage({ params }: { params: Promise<{ to
           {reservation.status === "confirmed" ? (
             <>
               <p className="eyebrow">{t.manage.preorderTitle}</p>
-              <div className="hairline mt-4" />
               <h2 className="display mt-5 text-4xl text-ink sm:text-5xl">{t.manage.preorderTitle}</h2>
               <p className="mt-4 max-w-xl text-ink-muted">{t.manage.preorderLede}</p>
 

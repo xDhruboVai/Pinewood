@@ -1,16 +1,37 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
-import { Container } from "./section";
-import { TagBadges } from "./tag-badges";
-import { Badge } from "@/components/ui/badge";
 import { useI18n, pickClient } from "@/lib/i18n/client";
 import { formatPrice } from "@/lib/format";
+import { PHOTOS, type PhotoName } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import type { MenuCategory, MenuItem, MenuSection, MenuTag } from "@/lib/types";
 
 const FILTERS: (MenuTag | "all")[] = ["all", "halal", "vegetarian", "chef_special"];
 const SECTIONS: MenuSection[] = ["starters", "mains", "coffee", "desserts", "beverages"];
+const TAG_ORDER: MenuTag[] = ["chef_special", "halal", "vegetarian", "spicy", "seafood", "contains_nuts"];
+
+// Photos shown among each section's dishes. "soft" fades the edges of crops cut from the printed menu.
+const SECTION_PHOTOS: Partial<Record<MenuSection, { name: PhotoName; soft?: boolean }[]>> = {
+  starters: [{ name: "fishCake" }, { name: "soup" }, { name: "potatoWedges" }],
+  mains: [
+    { name: "hero" },
+    { name: "steakSet" },
+    { name: "pine2" },
+    { name: "buffaloChickenSet" },
+    { name: "seafoodPlatter" },
+    { name: "mexicanChicken" },
+    { name: "shashlikSet" },
+    { name: "chickenCheeseBurger" },
+    { name: "chickenPlate" },
+    { name: "clubSandwich" },
+    { name: "alfredoBake" },
+    { name: "penne" },
+  ],
+  coffee: [{ name: "coffeeCup" }, { name: "cappuccino", soft: true }],
+  desserts: [{ name: "oreoCheesecakeReal" }, { name: "brownieReal" }, { name: "redVelvet", soft: true }],
+};
 
 export function MenuBrowser({ menu }: { menu: MenuCategory[] }) {
   const { locale, t } = useI18n();
@@ -28,21 +49,17 @@ export function MenuBrowser({ menu }: { menu: MenuCategory[] }) {
   }, [menu, filter]);
 
   return (
-    <>
-      <div className="sticky top-18 z-30 border-b border-line bg-canvas/90 backdrop-blur-md">
-        <Container className="flex flex-col gap-3 py-3 md:flex-row md:items-center md:justify-between">
-          <nav aria-label={t.nav.menu} className="-mx-4 flex gap-1 overflow-x-auto px-4 md:mx-0 md:px-0">
+    <div className="grain grain-dark bg-pine-700 text-cream-100">
+      <div className="sticky top-20 z-30 bg-pine-900/95 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-3.5 sm:px-8 md:flex-row md:items-center md:justify-between lg:px-12">
+          <nav aria-label={t.nav.menu} className="no-scrollbar -mx-5 flex gap-7 overflow-x-auto px-5 md:mx-0 md:px-0">
             {grouped.map(({ section }) => (
-              <a
-                key={section}
-                href={`#section-${section}`}
-                className="shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
-              >
+              <a key={section} href={`#section-${section}`} className="label shrink-0 text-cream-100/75 hover:text-mustard-400">
                 {t.menu.sections[section]}
               </a>
             ))}
           </nav>
-          <div role="group" aria-label={t.menu.filterLabel} className="-mx-4 flex gap-1.5 overflow-x-auto px-4 md:mx-0 md:px-0">
+          <div role="group" aria-label={t.menu.filterLabel} className="no-scrollbar -mx-5 flex gap-5 overflow-x-auto px-5 text-[0.8rem] md:mx-0 md:px-0">
             {FILTERS.map((f) => (
               <button
                 key={f}
@@ -50,74 +67,85 @@ export function MenuBrowser({ menu }: { menu: MenuCategory[] }) {
                 onClick={() => setFilter(f)}
                 aria-pressed={filter === f}
                 className={cn(
-                  "shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors",
-                  filter === f ? "border-primary bg-primary text-primary-ink" : "border-line text-ink-muted hover:border-ink/40 hover:text-ink",
+                  "shrink-0 font-medium transition-colors",
+                  filter === f ? "text-mustard-400" : "text-cream-100/60 hover:text-cream-100",
                 )}
               >
                 {f === "all" ? t.menu.filterAll : t.menu.tags[f]}
               </button>
             ))}
           </div>
-        </Container>
+        </div>
       </div>
 
-      <Container className="py-14 lg:py-20">
-        {grouped.length === 0 ? <p className="py-20 text-center text-ink-muted">{t.menu.empty}</p> : null}
+      <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
+        {grouped.length === 0 ? <p className="py-24 text-center text-cream-100/70">{t.menu.empty}</p> : null}
 
         {grouped.map(({ section, categories }) => (
-          <section key={section} id={`section-${section}`} className="scroll-mt-40 border-b border-line pb-16 not-first:pt-16 last:border-b-0">
-            <h2 className="display text-5xl text-ink sm:text-6xl">{t.menu.sections[section]}</h2>
-            <div className="mt-10 space-y-14">
+          <section key={section} id={`section-${section}`} className="scroll-mt-36 py-12 sm:py-16">
+            <p className="label mb-6 text-mustard-400">{t.menu.sections[section]}</p>
+            <div className="gap-16 md:columns-2">
               {categories.map((cat) => (
-                <div key={cat.id}>
-                  <h3 className="eyebrow">{pickClient(cat, "name", locale)}</h3>
-                  <ul className="mt-5 grid gap-x-14 lg:grid-cols-2">
+                <div key={cat.id} className="mb-12 break-inside-avoid">
+                  <h3 className="script pl-1 text-4xl text-cream-100 lowercase sm:text-5xl">{pickClient(cat, "name", locale)}</h3>
+                  <ul className="mt-4 space-y-4">
                     {cat.menu_items.map((item) => (
                       <MenuRow key={item.id} item={item} />
                     ))}
                   </ul>
                 </div>
               ))}
+              {(SECTION_PHOTOS[section] ?? []).map(({ name, soft }) => (
+                <figure key={name} className="mb-12 break-inside-avoid">
+                  <Image
+                    src={PHOTOS[name].src}
+                    alt={t.photos[name].alt}
+                    width={PHOTOS[name].width}
+                    height={PHOTOS[name].height}
+                    sizes="(min-width: 768px) 40vw, 100vw"
+                    className={cn("w-full", soft ? "soft-edges h-auto" : "aspect-[4/3] rounded-md object-cover")}
+                  />
+                  {t.photos[name].caption ? <figcaption className="label mt-3 text-cream-100/60">{t.photos[name].caption}</figcaption> : null}
+                </figure>
+              ))}
             </div>
           </section>
         ))}
 
-        <p className="mt-10 text-center text-sm text-ink-muted">{t.menu.preorderNote}</p>
-      </Container>
-    </>
+      </div>
+    </div>
   );
 }
 
 function MenuRow({ item }: { item: MenuItem }) {
   const { locale, t } = useI18n();
   const description = pickClient(item, "description", locale);
+  const options = item.menu_item_variants.length > 1
+    ? item.menu_item_variants
+        .map((v) => pickClient(v, "name", locale) + (Number(v.price_delta) > 0 ? ` +${formatPrice(Number(v.price_delta), locale)}` : ""))
+        .join(" / ")
+    : "";
+  const addons = item.menu_item_addons.map((a) => `${pickClient(a, "name", locale)} +${formatPrice(Number(a.price), locale)}`).join(" / ");
+  const tags = TAG_ORDER.filter((tag) => item.tags.includes(tag)).map((tag) => t.menu.tags[tag]);
 
   return (
-    <li className={cn("border-b border-line py-5", !item.is_available && "opacity-55")}>
-      <div className="flex items-baseline gap-3">
-        <h4 className="font-display text-[1.35rem] leading-tight text-ink">{pickClient(item, "name", locale)}</h4>
-        <span className="h-px min-w-6 flex-1 -translate-y-1 border-b border-dotted border-ink/25" aria-hidden />
-        <span className={cn("font-display text-lg text-ink", !item.is_available && "line-through")}>{formatPrice(item.price, locale)}</span>
-      </div>
-      {description ? <p className="mt-1 text-sm text-ink-muted">{description}</p> : null}
-      {item.menu_item_variants.length > 1 ? (
-        <p className="mt-1.5 text-xs text-ink-muted">
-          <span className="font-semibold">{t.menu.options}:</span>{" "}
-          {item.menu_item_variants
-            .map((v) => pickClient(v, "name", locale) + (Number(v.price_delta) > 0 ? ` (+${formatPrice(Number(v.price_delta), locale)})` : ""))
-            .join(" · ")}
-        </p>
+    <li className={cn("grid grid-cols-[1fr_auto] items-baseline gap-x-3", !item.is_available && "opacity-45")}>
+      <span className="text-[0.95rem] font-semibold tracking-[0.03em] text-cream-100 uppercase">{pickClient(item, "name", locale)}</span>
+      <span className={cn("text-[0.95rem] font-semibold tabular-nums text-cream-100", !item.is_available && "line-through")}>
+        {formatPrice(item.price, locale)}
+      </span>
+      {options ? <span className="col-span-2 text-[0.8rem] font-medium text-mustard-300 lowercase">({options})</span> : null}
+      {description ? <span className="col-span-2 mt-0.5 text-sm leading-relaxed text-cream-100/65">{description}</span> : null}
+      {addons ? (
+        <span className="col-span-2 mt-0.5 text-[0.8rem] text-cream-100/65">
+          {t.menu.addons}: {addons}
+        </span>
       ) : null}
-      {item.menu_item_addons.length > 0 ? (
-        <p className="mt-1 text-xs text-ink-muted">
-          <span className="font-semibold">{t.menu.addons}:</span>{" "}
-          {item.menu_item_addons.map((a) => `${pickClient(a, "name", locale)} +${formatPrice(Number(a.price), locale)}`).join(" · ")}
-        </p>
+      {tags.length || !item.is_available ? (
+        <span className="label col-span-2 mt-1 !text-[0.62rem] text-mustard-400/80">
+          {[!item.is_available ? t.menu.unavailable : null, ...tags].filter(Boolean).join(" · ")}
+        </span>
       ) : null}
-      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-        {!item.is_available ? <Badge tone="neutral">{t.menu.unavailable}</Badge> : null}
-        <TagBadges tags={item.tags} t={t} className="contents" />
-      </div>
     </li>
   );
 }

@@ -3,51 +3,65 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Check, Clock, Minus, Plus, Timer, Users } from "lucide-react";
-import { holdSlot, joinWaitlist, releaseHold, submitReservation } from "@/actions/reservation";
+import { holdSlot, submitReservation } from "@/actions/reservation";
 import { Button } from "@/components/ui/button";
-import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/form";
+import { QuietLink } from "@/components/site/section";
+import { Field, Input, Label, Textarea } from "@/components/ui/form";
+import { DatePicker } from "./date-picker";
+import { TimePicker } from "./time-picker";
 import { createClient } from "@/lib/supabase/client";
-import { useI18n, pickClient } from "@/lib/i18n/client";
-import { dhakaDate, durationLabel, formatDate, formatDateLong, formatNumber, formatTime } from "@/lib/format";
-import { SITE } from "@/lib/site";
+import { useI18n } from "@/lib/i18n/client";
+import { dhakaDate, formatDate, formatNumber, formatTime, isoToDhakaTime } from "@/lib/format";
+import { SITE, visibleOutlets } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import type { Area, AvailabilitySlot, ScheduleDay } from "@/lib/types";
 
-type Step = "slot" | "details" | "done";
-type Mode = "book" | "waitlist";
-
-interface Selection {
-  slot: AvailabilitySlot;
-  mode: Mode;
-  holdId?: string;
-  expiresAt?: string;
-}
+type Seating = "inside" | "outside";
 
 const DAYS_AHEAD = 31;
 
-export function BookingFlow({ areas, initialArea }: { areas: Area[]; initialArea?: string }) {
+/** Areas that count as "outside" (the smoking zone). Everything else is inside (non-smoking). */
+const isOutside = (a: Area) => /outdoor|outside|rooftop|balcony|terrace|smok/i.test(`${a.slug} ${a.name_en}`);
+
+/**
+ * One short form: name, phone, email, branch, inside or outside, number of people, date and time,
+ * and a note. The booking system has one pool of seats and doesn't know branches or smoking zones
+ * yet, so both travel to staff as the first lines of the booking notes. Seats are held only when
+ * the form is sent, in the matching area with the most free seats at that time.
+ */
+export function BookingFlow({ areas }: { areas: Area[] }) {
   const { locale, t } = useI18n();
   const supabase = useMemo(() => createClient(), []);
 
-  const activeAreas = areas.filter((a) => a.is_active);
-  const [areaId, setAreaId] = useState<string>(
-    activeAreas.find((a) => a.slug === initialArea)?.id ?? activeAreas.find((a) => a.slug === "timber-hall")?.id ?? activeAreas[0]?.id ?? "",
-  );
+  const outlets = visibleOutlets();
+  const [outletSlug, setOutletSlug] = useState(outlets[0]?.slug ?? "");
+  const outlet = outlets.find((o) => o.slug === outletSlug);
+  const [seating, setSeating] = useState<Seating>("inside");
+  const [party, setParty] = useState(2);
   const dates = useMemo(() => Array.from({ length: DAYS_AHEAD }, (_, i) => dhakaDate(i)), []);
   const [date, setDate] = useState(dates[0]);
-  const [party, setParty] = useState(2);
-  const [largeParty, setLargeParty] = useState(false);
-  const [duration, setDuration] = useState<number>(SITE.booking.defaultDuration);
+  // The time is typed: hour and minute (digits only) plus AM/PM.
+  const [hour, setHour] = useState("");
+  const [minute, setMinute] = useState("00");
+  const [ampm, setAmpm] = useState<"am" | "pm">("pm");
+  const duration: number = SITE.booking.defaultDuration;
+
   const [schedule, setSchedule] = useState<Record<string, ScheduleDay>>({});
   const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
   const [loading, setLoading] = useState(true);
-  const [step, setStep] = useState<Step>("slot");
-  const [selection, setSelection] = useState<Selection | null>(null);
-  const [holding, startHold] = useTransition();
-  const [result, setResult] = useState<{ reference?: string; phone?: string; mode: Mode } | null>(null);
+  const [form, setForm] = useState({ name: "", phone: "", email: "", note: "", website: "" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [pending, startTransition] = useTransition();
+  const [result, setResult] = useState<{ reference: string; phone: string } | null>(null);
 
-  // Opening schedule (to disable closed days)
+  // Areas for the chosen seating. If the database has none of that kind, any active area will do:
+  // staff still see the choice in the notes.
+  const areaIds = useMemo(() => {
+    const active = areas.filter((a) => a.is_active);
+    const matching = active.filter((a) => (seating === "outside" ? isOutside(a) : !isOutside(a)));
+    return new Set((matching.length ? matching : active).map((a) => a.id));
+  }, [areas, seating]);
+
   useEffect(() => {
     supabase.rpc("get_schedule", { p_days: DAYS_AHEAD }).then(({ data }) => {
       const map: Record<string, ScheduleDay> = {};
@@ -59,11 +73,7 @@ export function BookingFlow({ areas, initialArea }: { areas: Area[]; initialArea
   }, [supabase, dates]);
 
   const fetchSlots = useCallback(async () => {
-    const { data, error } = await supabase.rpc("get_availability", {
-      p_date: date,
-      p_party_size: party,
-      p_duration_minutes: duration,
-    });
+    const { data, error } = await supabase.rpc("get_availability", { p_date: date, p_party_size: party, p_duration_minutes: duration });
     if (!error) setSlots((data ?? []) as AvailabilitySlot[]);
     setLoading(false);
   }, [supabase, date, party, duration]);
@@ -86,454 +96,98 @@ export function BookingFlow({ areas, initialArea }: { areas: Area[]; initialArea
         timer = setTimeout(() => fetchRef.current(), 400);
       })
       .subscribe();
-    const poll = setInterval(() => fetchRef.current(), 60_000);
     return () => {
       clearTimeout(timer);
-      clearInterval(poll);
       supabase.removeChannel(channel);
     };
   }, [supabase]);
 
-  const areaSlots = slots.filter((s) => s.area_id === areaId);
-  const availableCount = (id: string) => slots.filter((s) => s.area_id === id && s.available).length;
-  const area = activeAreas.find((a) => a.id === areaId);
-  const day = schedule[date];
-  const dayClosed = Object.keys(schedule).length > 0 && !day?.opens;
-
-  const choose = (slot: AvailabilitySlot) => {
-    if (slot.available) {
-      startHold(async () => {
-        const res = await holdSlot({ areaId: slot.area_id, start: slot.slot_start, duration, partySize: party });
-        if (!res.ok) {
-          toast.error(t.errors[res.error] ?? t.errors.generic);
-          fetchSlots();
-          return;
-        }
-        setSelection({ slot, mode: "book", holdId: res.data.holdId, expiresAt: res.data.expiresAt });
-        setStep("details");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      });
-    } else if (slot.waitlist_eligible) {
-      setSelection({ slot, mode: "waitlist" });
-      setStep("details");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+  // One entry per time: the matching area with the most free seats (or a full one, shown as full).
+  const times = useMemo(() => {
+    const byStart = new Map<string, AvailabilitySlot[]>();
+    for (const s of slots) {
+      if (!areaIds.has(s.area_id)) continue;
+      byStart.set(s.slot_start, [...(byStart.get(s.slot_start) ?? []), s]);
     }
-  };
+    return [...byStart.values()]
+      .map((group) => group.filter((s) => s.available).sort((a, b) => b.remaining - a.remaining)[0] ?? group[0])
+      .sort((a, b) => a.slot_start.localeCompare(b.slot_start));
+  }, [slots, areaIds]);
 
-  const backToSlots = () => {
-    if (selection?.holdId) void releaseHold(selection.holdId);
-    setSelection(null);
-    setStep("slot");
-    fetchSlots();
-  };
+  // Turn the typed time into a start time and check it: a real time, on the hour or half hour
+  // (the booking system only takes those), inside opening hours and not full.
+  const h = Number(hour);
+  const m = Number(minute || "0");
+  const typedValid = hour !== "" && h >= 1 && h <= 12 && m >= 0 && m <= 59;
+  const startMs = typedValid
+    ? new Date(`${date}T${String((h % 12) + (ampm === "pm" ? 12 : 0)).padStart(2, "0")}:${String(m).padStart(2, "0")}:00+06:00`).getTime()
+    : NaN;
+  const match = times.find((s) => new Date(s.slot_start).getTime() === startMs);
+  const chosen = match?.available ? match : undefined;
+  const timeProblem = !typedValid
+    ? t.reserve.timeInvalid
+    : m % 30 !== 0
+      ? t.reserve.timeHalfHour
+      : !match
+        ? t.reserve.timeUnavailable
+        : !match.available
+          ? t.reserve.timeFull
+          : "";
+  const digits = (v: string) => v.replace(/\D/g, "").slice(0, 2);
 
-  const reset = () => {
-    setSelection(null);
-    setResult(null);
-    setStep("slot");
-    fetchSlots();
-  };
-
-  return (
-    <div className="grid gap-10 lg:grid-cols-[1fr_340px] lg:gap-14">
-      <div>
-        <Stepper step={step} />
-
-        {step === "slot" ? (
-          <div className="mt-10 space-y-10">
-            {/* Date */}
-            <section aria-labelledby="date-label">
-              <h2 id="date-label" className="eyebrow">
-                {t.reserve.date}
-              </h2>
-              <div className="-mx-4 mt-4 flex snap-x gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
-                {dates.map((d) => {
-                  const closed = Object.keys(schedule).length > 0 && !schedule[d]?.opens;
-                  const selected = d === date;
-                  const iso = `${d}T12:00:00+06:00`;
-                  return (
-                    <button
-                      key={d}
-                      type="button"
-                      disabled={closed}
-                      onClick={() => setDate(d)}
-                      aria-pressed={selected}
-                      className={cn(
-                        "flex w-16 shrink-0 snap-start flex-col items-center rounded-sm border py-2.5 transition-colors",
-                        selected ? "border-primary bg-primary text-primary-ink" : "border-line bg-surface text-ink hover:border-ink/40",
-                        closed && "cursor-not-allowed opacity-40",
-                      )}
-                    >
-                      <span className="text-[0.65rem] font-semibold tracking-wider uppercase opacity-75">
-                        {formatDate(iso, locale, { weekday: "short", day: undefined, month: undefined })}
-                      </span>
-                      <span className="font-display text-2xl leading-tight">{formatDate(iso, locale, { weekday: undefined, day: "numeric", month: undefined })}</span>
-                      <span className="text-[0.65rem] opacity-75">{formatDate(iso, locale, { weekday: undefined, day: undefined, month: "short" })}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
-            {/* Party + duration */}
-            <section className="grid gap-6 sm:grid-cols-2">
-              <div>
-                <p className="eyebrow">{t.reserve.partySize}</p>
-                <div className="mt-4 flex items-center gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    aria-label="−"
-                    disabled={largeParty || party <= 1}
-                    onClick={() => setParty((p) => Math.max(1, p - 1))}
-                  >
-                    <Minus />
-                  </Button>
-                  <output className="w-16 text-center font-display text-4xl text-ink" aria-live="polite">
-                    {formatNumber(party, locale)}
-                    {largeParty ? "+" : ""}
-                  </output>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    aria-label="+"
-                    disabled={largeParty || party >= SITE.booking.maxOnlineParty}
-                    onClick={() => setParty((p) => Math.min(SITE.booking.maxOnlineParty, p + 1))}
-                  >
-                    <Plus />
-                  </Button>
-                </div>
-                <label className="mt-4 flex items-start gap-2.5 text-sm text-ink">
-                  <Checkbox
-                    checked={largeParty}
-                    onChange={(e) => {
-                      setLargeParty(e.target.checked);
-                      if (e.target.checked) setParty(SITE.booking.maxOnlineParty);
-                    }}
-                  />
-                  <span>
-                    {t.reserve.largeParty}
-                    <span className="mt-0.5 block text-xs text-ink-muted">{t.reserve.largePartyHint}</span>
-                  </span>
-                </label>
-              </div>
-              <div>
-                <label htmlFor="duration" className="eyebrow block">
-                  {t.reserve.duration}
-                </label>
-                <div className="mt-4">
-                  <Select id="duration" value={duration} onChange={(e) => setDuration(Number(e.target.value))}>
-                    {SITE.booking.durations.map((m) => (
-                      <option key={m} value={m}>
-                        {durationLabel(m, locale)}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-              </div>
-            </section>
-
-            {/* Area */}
-            <section aria-labelledby="area-label">
-              <h2 id="area-label" className="eyebrow">
-                {t.reserve.area}
-              </h2>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {activeAreas.map((a) => {
-                  const count = availableCount(a.id);
-                  const selected = a.id === areaId;
-                  return (
-                    <button
-                      key={a.id}
-                      type="button"
-                      onClick={() => setAreaId(a.id)}
-                      aria-pressed={selected}
-                      className={cn(
-                        "rounded-sm border p-4 text-left transition-colors",
-                        selected ? "border-primary bg-surface ring-1 ring-primary" : "border-line bg-surface hover:border-ink/40",
-                      )}
-                    >
-                      <span className="flex items-center justify-between gap-2">
-                        <span className="font-display text-xl text-ink">{pickClient(a, "name", locale)}</span>
-                        {selected ? <Check className="size-4 text-primary" /> : null}
-                      </span>
-                      <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-ink-muted">{pickClient(a, "description", locale)}</span>
-                      {!loading ? (
-                        <span className={cn("mt-2 block text-xs font-semibold", count > 0 ? "text-forest-500 evening:text-forest-300" : "text-ink-muted")}>
-                          {count > 0 ? t.reserve.slotsOpen(count) : t.reserve.full}
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
-            {/* Times */}
-            <section aria-labelledby="time-label" aria-busy={loading}>
-              <div className="flex items-center justify-between">
-                <h2 id="time-label" className="eyebrow">
-                  {area ? pickClient(area, "name", locale) : ""} · {formatDateLong(`${date}T12:00:00+06:00`, locale)}
-                </h2>
-                <span className="inline-flex items-center gap-2 text-xs text-ink-muted">
-                  <span className="relative flex size-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-forest-400 opacity-60" />
-                    <span className="relative inline-flex size-2 rounded-full bg-forest-400" />
-                  </span>
-                  {t.reserve.live}
-                </span>
-              </div>
-
-              {dayClosed ? (
-                <p className="mt-6 rounded-sm border border-line bg-surface p-6 text-sm text-ink-muted">
-                  {t.reserve.closedDay} {day?.label ? `(${day.label})` : ""}
-                </p>
-              ) : loading ? (
-                <div className="mt-6 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
-                  {Array.from({ length: 10 }, (_, i) => (
-                    <div key={i} className="h-16 animate-pulse rounded-sm bg-surface-2" />
-                  ))}
-                </div>
-              ) : areaSlots.length === 0 ? (
-                <p className="mt-6 rounded-sm border border-line bg-surface p-6 text-sm text-ink-muted">
-                  {t.reserve.noSlots}{" "}
-                  <a className="underline" href={`tel:${SITE.phones[0].tel}`}>
-                    {SITE.phones[0].display}
-                  </a>
-                </p>
-              ) : (
-                <>
-                  <div className="mt-6 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
-                    {areaSlots.map((s) => {
-                      const low = s.available && s.remaining - party < 6;
-                      return (
-                        <button
-                          key={s.slot_start}
-                          type="button"
-                          disabled={holding || (!s.available && !s.waitlist_eligible)}
-                          onClick={() => choose(s)}
-                          className={cn(
-                            "flex h-16 flex-col items-center justify-center rounded-sm border text-sm transition-all",
-                            s.available && "border-line bg-surface text-ink hover:-translate-y-0.5 hover:border-primary hover:shadow-sm",
-                            !s.available && s.waitlist_eligible && "border-dashed border-accent/70 bg-accent/5 text-ink hover:bg-accent/10",
-                            !s.available && !s.waitlist_eligible && "cursor-not-allowed border-line/60 text-ink-muted/60 line-through",
-                          )}
-                        >
-                          <span className="font-semibold">{formatTime(s.slot_start, locale)}</span>
-                          <span className="mt-0.5 text-[0.65rem]">
-                            {s.available
-                              ? low
-                                ? t.reserve.seatsLeft(s.remaining)
-                                : " "
-                              : s.waitlist_eligible
-                                ? t.reserve.waitlist
-                                : t.reserve.full}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {areaSlots.some((s) => !s.available && s.waitlist_eligible) ? (
-                    <p className="mt-4 text-xs leading-relaxed text-ink-muted">{t.reserve.waitlistHint}</p>
-                  ) : null}
-                </>
-              )}
-            </section>
-          </div>
-        ) : null}
-
-        {step === "details" && selection ? (
-          <DetailsForm
-            selection={selection}
-            duration={duration}
-            party={party}
-            largeParty={largeParty}
-            onBack={backToSlots}
-            onDone={(r) => {
-              setResult(r);
-              setStep("done");
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-          />
-        ) : null}
-
-        {step === "done" && result ? (
-          <div className="mt-10 rounded-sm border border-line bg-surface p-8 sm:p-10">
-            <span className="inline-flex size-12 items-center justify-center rounded-full bg-primary text-primary-ink">
-              <Check className="size-6" />
-            </span>
-            <h2 className="display mt-6 text-4xl text-ink">
-              {result.mode === "book" ? t.reserve.doneTitle : t.reserve.doneWaitlistTitle}
-            </h2>
-            <p className="mt-4 max-w-xl leading-relaxed text-ink-muted">
-              {result.mode === "book" ? t.reserve.doneBody(result.phone ?? "") : t.reserve.doneWaitlistBody}
-            </p>
-            {result.reference ? (
-              <p className="mt-6 text-sm text-ink-muted">
-                {t.reserve.reference}: <span className="font-mono text-base font-semibold tracking-wider text-ink">{result.reference}</span>
-              </p>
-            ) : null}
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button onClick={reset}>{t.reserve.another}</Button>
-              <Button asChild variant="outline">
-                <Link href="/menu">{t.nav.menu}</Link>
-              </Button>
-            </div>
-          </div>
-        ) : null}
-      </div>
-
-      <aside className="lg:sticky lg:top-24 lg:self-start">
-        <div className="rounded-sm border border-line bg-surface p-6">
-          <p className="eyebrow">{t.reserve.summary}</p>
-          <dl className="mt-5 space-y-3 text-sm">
-            <SummaryRow icon={<Clock className="size-4" />} label={t.reserve.date}>
-              {formatDateLong(selection?.slot.slot_start ?? `${date}T12:00:00+06:00`, locale)}
-              {selection ? (
-                <span className="block text-ink-muted">
-                  {formatTime(selection.slot.slot_start, locale)} – {formatTime(selection.slot.slot_end, locale)}
-                </span>
-              ) : null}
-            </SummaryRow>
-            <SummaryRow icon={<Users className="size-4" />} label={t.reserve.partySize}>
-              {formatNumber(party, locale)}
-              {largeParty ? "+" : ""} · {durationLabel(duration, locale)}
-            </SummaryRow>
-            <SummaryRow icon={<Check className="size-4" />} label={t.reserve.area}>
-              {area ? pickClient(area, "name", locale) : "—"}
-            </SummaryRow>
-          </dl>
-          {step === "details" && selection?.mode === "book" && selection.expiresAt ? (
-            <HoldTimer expiresAt={selection.expiresAt} />
-          ) : null}
-        </div>
-        <p className="mt-4 px-1 text-xs leading-relaxed text-ink-muted">
-          {t.visit.phones}:{" "}
-          {SITE.phones.map((p, i) => (
-            <span key={p.tel}>
-              {i > 0 ? " · " : ""}
-              <a href={`tel:${p.tel}`} className="underline-offset-2 hover:underline">
-                {p.display}
-              </a>
-            </span>
-          ))}
-        </p>
-      </aside>
-    </div>
+  // Earliest and latest start times with a free table, shown as a hint under the time.
+  const freeTimes = times.filter((s) => s.available);
+  const firstTime = freeTimes[0]?.slot_start;
+  const lastTime = freeTimes[freeTimes.length - 1]?.slot_start;
+  // Free times as "7:30 pm" keys, so the time wheel can fade the ones with no table.
+  const freeKeys = useMemo(
+    () =>
+      new Set(
+        freeTimes.map((slot) => {
+          const [hh, mm] = isoToDhakaTime(slot.slot_start).split(":").map(Number);
+          return `${hh % 12 || 12}:${String(mm).padStart(2, "0")} ${hh < 12 ? "am" : "pm"}`;
+        }),
+      ),
+    [freeTimes],
   );
-}
 
-function SummaryRow({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex gap-3">
-      <dt className="mt-0.5 text-accent-ink" aria-label={label}>
-        {icon}
-      </dt>
-      <dd className="text-ink">{children}</dd>
-    </div>
-  );
-}
-
-function Stepper({ step }: { step: Step }) {
-  const { t } = useI18n();
-  const steps: [Step, string][] = [
-    ["slot", t.reserve.stepSlot],
-    ["details", t.reserve.stepDetails],
-    ["done", t.reserve.stepDone],
-  ];
-  const index = steps.findIndex(([s]) => s === step);
-  return (
-    <ol className="flex items-center gap-3 text-xs font-semibold tracking-wide">
-      {steps.map(([s, label], i) => (
-        <li key={s} className="flex items-center gap-3">
-          <span
-            className={cn(
-              "flex size-6 items-center justify-center rounded-full border text-[0.7rem]",
-              i < index && "border-primary bg-primary text-primary-ink",
-              i === index && "border-primary text-primary",
-              i > index && "border-line text-ink-muted",
-            )}
-          >
-            {i < index ? <Check className="size-3" /> : i + 1}
-          </span>
-          <span className={cn(i === index ? "text-ink" : "text-ink-muted", "hidden sm:inline")}>{label}</span>
-          {i < steps.length - 1 ? <span className="h-px w-6 bg-line sm:w-10" /> : null}
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-function HoldTimer({ expiresAt }: { expiresAt: string }) {
-  const { t } = useI18n();
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  const left = Math.max(0, new Date(expiresAt).getTime() - now);
-  const mm = String(Math.floor(left / 60000)).padStart(2, "0");
-  const ss = String(Math.floor((left % 60000) / 1000)).padStart(2, "0");
-
-  return (
-    <div className={cn("mt-6 rounded-sm border p-4 text-sm", left > 0 ? "border-accent/50 bg-accent/5" : "border-line bg-surface-2")}>
-      {left > 0 ? (
-        <p className="flex items-center justify-between gap-3">
-          <span className="inline-flex items-center gap-2 text-ink">
-            <Timer className="size-4 text-accent-ink" />
-            {t.reserve.holding}
-          </span>
-          <span className="font-mono text-base font-semibold text-ink tabular-nums" aria-label={t.reserve.holdExpires}>
-            {mm}:{ss}
-          </span>
-        </p>
-      ) : (
-        <p className="text-ink-muted">{t.reserve.holdExpired}</p>
-      )}
-    </div>
-  );
-}
-
-function DetailsForm({
-  selection,
-  duration,
-  party,
-  largeParty,
-  onBack,
-  onDone,
-}: {
-  selection: Selection;
-  duration: number;
-  party: number;
-  largeParty: boolean;
-  onBack: () => void;
-  onDone: (r: { reference?: string; phone?: string; mode: Mode }) => void;
-}) {
-  const { locale, t } = useI18n();
-  const [pending, startTransition] = useTransition();
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [form, setForm] = useState({ name: "", phone: "", email: "", requests: "", consent: false, website: "" });
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setForm((f) => ({ ...f, [k]: e.target.type === "checkbox" ? (e.target as HTMLInputElement).checked : e.target.value }));
+  const openDates = dates.filter((d) => Object.keys(schedule).length === 0 || schedule[d]?.opens);
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const err = (k: string) => errors[k];
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+    if (!chosen) {
+      setErrors({ time: hour === "" ? t.reserve.timeRequired : timeProblem });
+      return;
+    }
     startTransition(async () => {
-      const common = { ...form, largeParty, locale };
-      const res =
-        selection.mode === "book"
-          ? await submitReservation({ ...common, holdId: selection.holdId })
-          : await joinWaitlist({
-              ...common,
-              areaId: selection.slot.area_id,
-              start: selection.slot.slot_start,
-              duration,
-              partySize: party,
-            });
-
+      const hold = await holdSlot({ areaId: chosen.area_id, start: chosen.slot_start, duration, partySize: party });
+      if (!hold.ok) {
+        toast.error(t.errors[hold.error] ?? t.errors.generic);
+        fetchSlots();
+        return;
+      }
+      // Staff see the branch and seating first in the booking notes.
+      const notes = [
+        outlets.length > 1 && outlet ? `Branch: ${outlet.name.en}` : "",
+        `Seating: ${seating === "outside" ? "Outside (smoking)" : "Inside (non-smoking)"}`,
+        form.note.trim(),
+      ]
+        .filter(Boolean)
+        .join("\n");
+      const res = await submitReservation({
+        name: form.name,
+        phone: form.phone,
+        email: form.email,
+        requests: notes,
+        largeParty: false,
+        consent: true,
+        website: form.website,
+        locale,
+        holdId: hold.data.holdId,
+      });
       if (!res.ok) {
         if ("fields" in res && res.fields) {
           setErrors(Object.fromEntries(Object.entries(res.fields).map(([k, v]) => [k, t.errors[v] ?? t.errors.generic])));
@@ -541,73 +195,267 @@ function DetailsForm({
         toast.error(t.errors[res.error] ?? t.errors.generic);
         return;
       }
-      onDone({
-        mode: selection.mode,
-        reference: "reference" in res.data ? res.data.reference : undefined,
-        phone: "phone" in res.data ? res.data.phone : undefined,
-      });
+      setResult({ reference: res.data.reference, phone: res.data.phone });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     });
   };
 
-  const err = (k: string) => errors[k];
+  if (result) {
+    return (
+      <div className="max-w-2xl">
+        <h2 className="display text-4xl text-ink sm:text-5xl">{t.reserve.doneTitle}</h2>
+        <p className="mt-4 max-w-xl leading-relaxed text-ink-muted">{t.reserve.doneBody(result.phone)}</p>
+        <p className="mt-6 text-ink-muted">
+          {t.reserve.reference}: <span className="text-lg font-semibold tracking-wider text-ink">{result.reference}</span>
+        </p>
+        <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4">
+          <Button
+            onClick={() => {
+              setResult(null);
+              setHour("");
+              setForm((f) => ({ ...f, note: "" }));
+              fetchSlots();
+            }}
+          >
+            {t.reserve.another}
+          </Button>
+          <QuietLink href="/menu">{t.nav.menu}</QuietLink>
+        </div>
+      </div>
+    );
+  }
+
+  const timeLabel = chosen ? formatTime(chosen.slot_start, locale) : t.reserve.pickTime;
+  const summary = [
+    formatDate(`${date}T12:00:00+06:00`, locale, { weekday: "long", month: "long" }),
+    timeLabel,
+    `${formatNumber(party, locale)} ${party === 1 ? t.common.guest : t.common.guests}`,
+    outlets.length > 1 && outlet ? outlet.name[locale] : null,
+    seating === "outside" ? t.reserve.outside : t.reserve.inside,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  // Step numbers shift by one when there is only one branch to choose from.
+  const n = (step: number) => (outlets.length > 1 || step < 2 ? step : step - 1);
 
   return (
-    <form onSubmit={submit} noValidate className="mt-10 space-y-6">
-      <button type="button" onClick={onBack} className="inline-flex items-center gap-2 text-sm font-semibold text-ink-muted hover:text-ink">
-        <ArrowLeft className="size-4" />
-        {t.reserve.changeSlot}
-      </button>
+    <form onSubmit={submit} noValidate>
+      {/* 1. Your details */}
+      <Step n={1} title={t.reserve.detailsTitle} hint={t.reserve.detailsHint} first>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field label={t.reserve.name} htmlFor="name" error={err("name")}>
+            <Input id="name" autoComplete="name" required value={form.name} onChange={set("name")} aria-invalid={!!err("name")} className="h-12" />
+          </Field>
+          <Field label={t.reserve.phone} htmlFor="phone" error={err("phone")}>
+            <Input
+              id="phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              placeholder="01XXXXXXXXX"
+              required
+              value={form.phone}
+              onChange={set("phone")}
+              aria-invalid={!!err("phone")}
+              className="h-12"
+            />
+          </Field>
+          <Field label={t.reserve.email} htmlFor="email" error={err("email")}>
+            <Input id="email" type="email" autoComplete="email" required value={form.email} onChange={set("email")} aria-invalid={!!err("email")} className="h-12" />
+          </Field>
+        </div>
+      </Step>
 
-      {selection.mode === "waitlist" ? (
-        <p className="rounded-sm border border-dashed border-accent/70 bg-accent/5 p-4 text-sm leading-relaxed text-ink">{t.reserve.waitlistHint}</p>
+      {/* 2. Branch */}
+      {outlets.length > 1 ? (
+        <Step n={2} title={t.reserve.outlet}>
+          <Choice
+            label={t.reserve.outlet}
+            value={outletSlug}
+            onChange={setOutletSlug}
+            options={outlets.map((o) => ({ value: o.slug, title: o.name[locale], hint: o.address[locale] }))}
+          />
+        </Step>
       ) : null}
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Field label={t.reserve.name} htmlFor="name" error={err("name")} className="sm:col-span-2">
-          <Input id="name" autoComplete="name" required value={form.name} onChange={set("name")} aria-invalid={!!err("name")} />
-        </Field>
-        <Field label={t.reserve.phone} htmlFor="phone" hint={t.reserve.phoneHint} error={err("phone")}>
-          <Input
-            id="phone"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            placeholder="01XXXXXXXXX"
-            required
-            value={form.phone}
-            onChange={set("phone")}
-            aria-invalid={!!err("phone")}
-          />
-        </Field>
-        <Field label={t.reserve.email} htmlFor="email" hint={t.reserve.emailHint} error={err("email")}>
-          <Input id="email" type="email" autoComplete="email" required value={form.email} onChange={set("email")} aria-invalid={!!err("email")} />
-        </Field>
-        <Field label={t.reserve.requests} htmlFor="requests" className="sm:col-span-2">
-          <Textarea id="requests" maxLength={500} placeholder={t.reserve.requestsPlaceholder} value={form.requests} onChange={set("requests")} />
-        </Field>
-      </div>
+      {/* 3. Inside or outside */}
+      <Step n={n(3)} title={t.reserve.seating}>
+        <Choice
+          label={t.reserve.seating}
+          value={seating}
+          onChange={(v) => setSeating(v as Seating)}
+          options={[
+            { value: "inside", title: t.reserve.inside, hint: t.reserve.insideHint },
+            { value: "outside", title: t.reserve.outside, hint: t.reserve.outsideHint },
+          ]}
+        />
+      </Step>
 
+      {/* 4. Number of people */}
+      <Step n={n(4)} title={t.reserve.partySize} hint={t.reserve.largePartyCall}>
+        <div role="radiogroup" aria-label={t.reserve.partySize} className="grid grid-cols-5 gap-2 sm:grid-cols-10">
+          {Array.from({ length: SITE.booking.maxOnlineParty }, (_, i) => i + 1).map((count) => (
+            <button
+              key={count}
+              type="button"
+              role="radio"
+              aria-checked={party === count}
+              onClick={() => setParty(count)}
+              className={cn(
+                "h-12 rounded-sm border text-[0.95rem] font-medium tabular-nums transition-colors",
+                party === count ? "border-primary bg-primary text-primary-ink" : "border-line bg-surface text-ink hover:border-ink/35",
+              )}
+            >
+              {formatNumber(count, locale)}
+            </button>
+          ))}
+        </div>
+      </Step>
+
+      {/* 5. Date and time */}
+      <Step n={n(5)} title={t.reserve.when}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label={t.reserve.date} htmlFor="date">
+            <DatePicker
+              id="date"
+              value={date}
+              onChange={setDate}
+              available={openDates}
+              today={dates[0]}
+              locale={locale}
+              labels={{ prev: t.reserve.prevMonth, next: t.reserve.nextMonth }}
+            />
+          </Field>
+          <div>
+            <Label htmlFor="time">{t.reserve.time}</Label>
+            <TimePicker
+              id="time"
+              hour={hour}
+              minute={minute}
+              ampm={ampm}
+              onHour={setHour}
+              onMinute={setMinute}
+              onAmpm={setAmpm}
+              free={freeKeys}
+              invalid={!!err("time")}
+              labels={{ hour: t.reserve.hour, minute: t.reserve.minute, ampm: t.reserve.ampm, clear: t.reserve.clearTime, cancel: t.reserve.cancel, ok: t.reserve.ok }}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            {err("time") ? (
+              <p role="alert" className="text-sm text-danger">
+                {err("time")}
+              </p>
+            ) : hour !== "" && !loading && timeProblem ? (
+              <p className="text-sm text-accent-ink">{timeProblem}</p>
+            ) : !loading && times.length === 0 ? (
+              <p className="text-sm text-ink-muted">
+                {t.reserve.noSlots}{" "}
+                <a className="font-medium text-primary evening:text-ink" href={`tel:${SITE.phones[0].tel}`}>
+                  {SITE.phones[0].display}
+                </a>
+              </p>
+            ) : (
+              <p className="text-sm text-ink-muted">
+                {firstTime && lastTime ? t.reserve.timeRange(formatTime(firstTime, locale), formatTime(lastTime, locale)) : t.reserve.timeHalfHour}
+              </p>
+            )}
+          </div>
+        </div>
+      </Step>
+
+      {/* 6. Note */}
+      <Step n={n(6)} title={t.reserve.note}>
+        <Textarea
+          id="note"
+          aria-label={t.reserve.note}
+          maxLength={400}
+          value={form.note}
+          onChange={set("note")}
+          placeholder={t.reserve.notePlaceholder}
+          className="min-h-28"
+        />
+      </Step>
+
+      {/* Honeypot for bots */}
       <div aria-hidden className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
         <label htmlFor="website">Website</label>
         <input id="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={set("website")} />
       </div>
 
-      <div>
-        <label className="flex items-start gap-3 text-sm leading-relaxed text-ink">
-          <Checkbox checked={form.consent} onChange={set("consent")} aria-invalid={!!err("consent")} />
-          <span>
-            {t.reserve.consent}{" "}
-            <Link href="/privacy" target="_blank" className="underline underline-offset-2">
+      {/* 7. Confirm */}
+      <Step n={n(7)} title={t.reserve.confirmTitle} hint={t.reserve.confirmHint}>
+        <p className="text-[1.1rem] leading-relaxed font-medium text-ink" aria-live="polite">
+          {summary}
+        </p>
+        <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-4">
+          <Button type="submit" size="lg" disabled={pending} className="w-full sm:w-auto">
+            {pending ? t.reserve.submitting : t.reserve.submit}
+          </Button>
+          <p className="max-w-md text-xs leading-relaxed text-ink-muted">
+            {t.reserve.consentNote}{" "}
+            <Link href="/privacy" target="_blank" className="font-medium text-primary evening:text-ink">
               {t.reserve.privacyLink}
             </Link>
-          </span>
-        </label>
-        {err("consent") ? <p className="mt-1.5 text-xs text-danger">{err("consent")}</p> : null}
-      </div>
-
-      <Button type="submit" size="lg" disabled={pending} className="w-full sm:w-auto">
-        {pending ? t.reserve.submitting : selection.mode === "book" ? t.reserve.submit : t.reserve.submitWaitlist}
-      </Button>
+          </p>
+        </div>
+      </Step>
     </form>
+  );
+}
+
+/**
+ * One step of the form, laid out like the menu: a small serif number and the step name (in the
+ * menu's dish-name style) on the left, the controls on the right, a thin line between steps.
+ */
+function Step({ n, title, hint, first, children }: { n: number; title: string; hint?: string; first?: boolean; children: React.ReactNode }) {
+  return (
+    <section className={cn("grid gap-x-12 gap-y-5 py-10 lg:grid-cols-12", first ? "pt-0" : "border-t border-line")}>
+      <div className="lg:col-span-4">
+        <p aria-hidden className="label text-accent-ink tabular-nums">
+          {String(n).padStart(2, "0")}
+        </p>
+        <h2 className="mt-2 text-[0.95rem] font-semibold tracking-[0.03em] text-ink uppercase">{title}</h2>
+        {hint ? <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-ink-muted">{hint}</p> : null}
+      </div>
+      <div className="lg:col-span-8">{children}</div>
+    </section>
+  );
+}
+
+/** Equal tiles for a single choice (branch, inside or outside); the chosen one is filled teal. */
+function Choice({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; title: string; hint?: string }[];
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className="grid gap-3 sm:grid-cols-3">
+      {options.map((o) => {
+        const on = o.value === value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            onClick={() => onChange(o.value)}
+            className={cn(
+              "flex min-h-[4.75rem] flex-col justify-center rounded-sm border px-4 py-3 text-left transition-colors",
+              on ? "border-primary bg-primary text-primary-ink" : "border-line bg-surface text-ink hover:border-ink/35",
+            )}
+          >
+            <span className="text-[0.85rem] font-semibold tracking-[0.03em] uppercase">{o.title}</span>
+            {o.hint ? <span className={cn("mt-1 text-[0.8rem] leading-snug", on ? "text-primary-ink/75" : "text-ink-muted")}>{o.hint}</span> : null}
+          </button>
+        );
+      })}
+    </div>
   );
 }
