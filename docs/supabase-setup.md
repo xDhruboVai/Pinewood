@@ -83,8 +83,17 @@ In Supabase **Authentication**:
 1. Set the Site URL to the local or production website URL.
 2. Add `http://localhost:3000/**` and the production URL to redirect URLs.
 3. Disable public sign-ups.
-4. Configure invite and recovery email templates to route through `/auth/confirm`.
-5. Turn on leaked-password protection (**Authentication → Passwords**); the Supabase security advisor flags it as off.
+4. In **Authentication → SMTP Settings**, enable custom SMTP and use your verified Resend sender:
+	- Host: `smtp.resend.com`
+	- Port: `465`
+	- Sender email: an address on your verified Resend domain
+	- Sender name: `Pine Wood`
+	- Username: `resend`
+	- Password: a Resend API key with email-sending access
+
+	Keep the API key in the Supabase Dashboard only; do not commit it or put it in the website environment. This SMTP configuration is separate from the Resend API key and Edge Function used for reservation emails.
+5. Configure invite and recovery email templates to route through `/auth/confirm`.
+6. Turn on leaked-password protection (**Authentication → Passwords**); the Supabase security advisor flags it as off.
 
 ### Rotating the webhook secret
 
