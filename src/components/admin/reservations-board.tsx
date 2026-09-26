@@ -13,7 +13,6 @@ import {
   Clock,
   Ellipsis,
   Eye,
-  Inbox,
   MapPin,
   Search,
   X,
@@ -25,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
 import { parseBookingNotes } from "@/lib/booking-notes";
 import { createClient } from "@/lib/supabase/client";
-import { dhakaDate, formatDate, formatPrice, formatTime, isoToDhakaDate } from "@/lib/format";
+import { dhakaDate, formatDate, formatPrice, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { AdminReservation, ReservationStatus } from "@/lib/types";
 
@@ -110,8 +109,6 @@ export function ReservationsBoard({ initialDate, canDelete = false }: { initialD
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [viewingId, setViewingId] = useState<string | null>(null);
-  const [inboxOpen, setInboxOpen] = useState(false);
-  const [inboxRows, setInboxRows] = useState<AdminReservation[]>([]);
 
   // Only the latest load may fill the board: flicking through days quickly, a slower answer for an
   // earlier day is dropped instead of showing that day's bookings under the new date.
@@ -127,20 +124,8 @@ export function ReservationsBoard({ initialDate, canDelete = false }: { initialD
     setLoading(false);
   }, [supabase, date]);
 
-  // Load upcoming reservations (next 30 days) for the inbox
-  const loadInbox = useCallback(async () => {
-    const today = dhakaDate();
-    const future = shiftDate(today, 30);
-    const res = await supabase.rpc("admin_list_reservations", { p_from: today, p_to: future });
-    if (!res.error && res.data) {
-      setInboxRows((res.data as AdminReservation[]).sort((a, b) => a.starts_at.localeCompare(b.starts_at)));
-    }
-  }, [supabase]);
-
   const loadRef = useRef(load);
   loadRef.current = load;
-  const loadInboxRef = useRef(loadInbox);
-  loadInboxRef.current = loadInbox;
 
   useEffect(() => {
     setLoading(true);
@@ -148,16 +133,11 @@ export function ReservationsBoard({ initialDate, canDelete = false }: { initialD
   }, [load]);
 
   useEffect(() => {
-    loadInbox();
-  }, [loadInbox]);
-
-  useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const refresh = () => {
       clearTimeout(timer);
       timer = setTimeout(() => {
         loadRef.current();
-        loadInboxRef.current();
       }, 300);
     };
     const channel = supabase
@@ -191,21 +171,13 @@ export function ReservationsBoard({ initialDate, canDelete = false }: { initialD
   const declinedCount = rows.filter((r) => r.status === "rejected").length;
   const isToday = date === dhakaDate();
   const filterLabel = FILTERS.find((f) => f.key === filter)!.label.toLowerCase();
-  const viewing = viewingId ? (rows.find((r) => r.id === viewingId) ?? inboxRows.find((r) => r.id === viewingId) ?? null) : null;
-  const pendingUpcoming = useMemo(() => inboxRows.filter((r) => r.status === "pending"), [inboxRows]);
-
-  const openFromInbox = (r: AdminReservation) => {
-    const targetDate = isoToDhakaDate(r.starts_at);
-    setDate(targetDate);
-    setViewingId(r.id);
-    setInboxOpen(false);
-  };
+  const viewing = viewingId ? rows.find((r) => r.id === viewingId) ?? null : null;
 
   return (
     <div>
-      {/* Page header, set like the public reservation page: gold eyebrow, serif title, one line of
+        {/* Page header, set like the public reservation page: gold eyebrow, serif title, one line of
           text. Beside it, the day: arrows either side of the date (the date itself opens the
-          calendar), Today and the inbox as quiet text actions, and the day's numbers as a plain strip
+          calendar), Today as a quiet text action, and the day's numbers as a plain strip
           with thin rules between them, not cards. */}
       <div className="flex flex-wrap items-end justify-between gap-x-12 gap-y-8">
         <div className="max-w-md">
@@ -251,17 +223,6 @@ export function ReservationsBoard({ initialDate, canDelete = false }: { initialD
                 onClick={() => setDate(dhakaDate())}
               >
                 Today
-              </button>
-              <span aria-hidden className="h-3.5 w-px bg-line" />
-              <button
-                type="button"
-                onClick={() => setInboxOpen(true)}
-                aria-label={`Inbox: ${pendingUpcoming.length} pending`}
-                className={cn(TEXT_ACTION, "inline-flex items-center gap-2 text-pine-700 hover:text-ink")}
-              >
-                <Inbox aria-hidden className="size-3.5" strokeWidth={1.75} />
-                Inbox
-                {pendingUpcoming.length > 0 ? <span className="text-accent-ink tabular-nums">{pendingUpcoming.length} pending</span> : null}
               </button>
             </div>
           </div>
@@ -373,13 +334,6 @@ export function ReservationsBoard({ initialDate, canDelete = false }: { initialD
       ) : null}
 
       <ReservationPanel r={viewing} canDelete={canDelete} onChanged={load} onClose={() => setViewingId(null)} />
-      <InboxPanel
-        open={inboxOpen}
-        rows={inboxRows}
-        pendingCount={pendingUpcoming.length}
-        onSelect={openFromInbox}
-        onClose={() => setInboxOpen(false)}
-      />
     </div>
   );
 }
@@ -800,149 +754,5 @@ function PanelBody({ r, titleId, canDelete, onChanged, onClose }: { r: AdminRese
         </div>
       ) : null}
     </div>
-  );
-}
-
-/**
- * Slide-over drawer listing all upcoming and future reservations (next 30 days),
- * with a focus on pending requests so staff never miss a future booking.
- */
-function InboxPanel({
-  open,
-  rows,
-  pendingCount,
-  onSelect,
-  onClose,
-}: {
-  open: boolean;
-  rows: AdminReservation[];
-  pendingCount: number;
-  onSelect: (r: AdminReservation) => void;
-  onClose: () => void;
-}) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  const titleId = useId();
-  const [filter, setFilter] = useState<"pending" | "all">("pending");
-
-  useEffect(() => {
-    const el = dialog.current;
-    if (!el) return;
-    if (open && !el.open) el.showModal();
-    if (!open && el.open) el.close();
-  }, [open]);
-
-  const visible = filter === "pending" ? rows.filter((r) => r.status === "pending") : rows;
-  const tabs = [
-    { key: "pending" as const, label: "Pending", count: pendingCount },
-    { key: "all" as const, label: "All upcoming", count: rows.length },
-  ];
-
-  return (
-    <dialog
-      ref={dialog}
-      aria-labelledby={titleId}
-      onClose={onClose}
-      onClick={(e) => e.target === e.currentTarget && e.currentTarget.close()}
-      className="fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-none w-full max-w-md bg-canvas p-0 text-ink backdrop:bg-pine-900/40 sm:border-l sm:border-line"
-    >
-      {open ? (
-        <div className="flex h-full flex-col">
-          {/* A booking ledger sliding over the page: gold eyebrow, serif title, one line of text. */}
-          <div className="flex items-start justify-between gap-4 px-7 pt-7 pb-5">
-            <div>
-              <p className="eyebrow">Next 30 days</p>
-              <h2 id={titleId} className="display mt-1.5 text-[2rem] leading-tight text-ink">
-                Reservations Inbox
-              </h2>
-              <p className="mt-1.5 text-sm text-ink-muted">Preview incoming bookings and requests across all future dates.</p>
-            </div>
-            <button type="button" onClick={() => dialog.current?.close()} aria-label="Close inbox" className={cn(ICON_BUTTON, "-mr-2")}>
-              <X className="size-5" strokeWidth={1.5} />
-            </button>
-          </div>
-
-          {/* Two tabs as small capitals; the chosen one in teal with a gold underline. */}
-          <div role="group" aria-label="Show" className="flex gap-7 border-b border-line px-7">
-            {tabs.map((tab) => {
-              const active = filter === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setFilter(tab.key)}
-                  className={cn(
-                    CAPS,
-                    "-mb-px inline-flex items-baseline gap-2 border-b-2 py-3 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mustard-400",
-                    active ? "border-mustard-400 text-pine-700" : "border-transparent text-ink-muted hover:text-ink",
-                  )}
-                >
-                  {tab.label}
-                  <span className="tabular-nums">{tab.count}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* The bookings as one list with thin rules between them: state and day on the left, time on
-              the right, the guest's name in serif, then party, date and branch, the note, and the
-              reference with the way to the register. Pending ones carry a thin gold rule. */}
-          <div className="flex-1 overflow-y-auto">
-            {visible.length === 0 ? (
-              <div className="px-7 py-20 text-center">
-                <p className="display text-2xl text-ink">{filter === "pending" ? "Nothing waiting" : "No upcoming reservations"}</p>
-                <p className="mt-2 text-sm text-ink-muted">New requests from guests appear here as they come in.</p>
-              </div>
-            ) : (
-              <ul>
-                {visible.map((r) => {
-                  const notes = parseBookingNotes(r.special_requests);
-                  const branch = r.branch?.name ?? notes.branch;
-                  const s = STATUS[r.status];
-                  return (
-                    <li key={r.id} className="border-b border-line last:border-b-0">
-                      <button
-                        type="button"
-                        onClick={() => onSelect(r)}
-                        className={cn(
-                          "group relative block w-full px-7 py-5 text-left transition-colors hover:bg-surface/60 focus-visible:bg-surface/60 focus-visible:outline-none",
-                          "before:absolute before:inset-y-5 before:left-0 before:w-[2px]",
-                          r.status === "pending" ? "before:bg-mustard-400" : "before:bg-transparent",
-                        )}
-                      >
-                        <span className="flex items-baseline justify-between gap-4">
-                          <span className={cn(CAPS, "text-[0.65rem]", TONE_TEXT[s.tone])}>
-                            {s.label}
-                            <span className="ml-2 text-ink-muted">· {relativeDay(isoToDhakaDate(r.starts_at))}</span>
-                          </span>
-                          <span className="text-sm font-semibold text-ink uppercase tabular-nums">{formatTime(r.starts_at)}</span>
-                        </span>
-                        <span className="display mt-1.5 block text-[1.4rem] leading-tight text-ink group-hover:text-pine-700">{r.customer_name}</span>
-                        <span className="mt-1 block text-[0.85rem] text-ink-muted">
-                          {r.party_size} {r.party_size === 1 ? "person" : "people"}
-                          <span aria-hidden className="mx-1.5">·</span>
-                          {formatDate(r.starts_at, "en", { weekday: "short", day: "numeric", month: "short" })}
-                          {branch ? (
-                            <>
-                              <span aria-hidden className="mx-1.5">·</span>
-                              {branch}
-                            </>
-                          ) : null}
-                        </span>
-                        {notes.note ? <span className="mt-2 line-clamp-2 block text-[0.85rem] text-ink italic">“{notes.note}”</span> : null}
-                        <span className="mt-3 flex items-center justify-between gap-4 text-xs">
-                          <span className="tracking-[0.08em] text-ink-muted tabular-nums">{r.reference}</span>
-                          <span className={cn(TEXT_ACTION, "text-[0.65rem] text-pine-700 group-hover:text-ink")}>View in register →</span>
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </div>
-      ) : null}
-    </dialog>
   );
 }

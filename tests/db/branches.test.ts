@@ -111,6 +111,17 @@ describe("branch isolation", () => {
       owner,
     );
     expect(ownerRows.map(({ r }) => r.id)).toEqual(expect.arrayContaining([ownBooking.id, otherBooking.id]));
+
+    const bananiManager = await staffUser(db, "manager");
+    await db.q("update public.staff_profiles set branch_id = $2 where user_id = $1", [bananiManager, B.banani]);
+    const bananiRows = await db.as<{ r: { id: string } }>(
+      "authenticated",
+      "select r from public.admin_list_reservations($1::date, $1::date) r",
+      [day],
+      bananiManager,
+    );
+    expect(bananiRows.map(({ r }) => r.id)).toContain(otherBooking.id);
+    expect(bananiRows.map(({ r }) => r.id)).not.toContain(ownBooking.id);
   });
 
   it("areas without a branch (the old placeholder areas) are never offered for a branch", async () => {
