@@ -1,8 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useI18n, pickClient } from "@/lib/i18n/client";
 import { formatPrice } from "@/lib/format";
 import { DISH_PHOTOS, PHOTOS, type PhotoName } from "@/lib/site";
@@ -15,27 +14,20 @@ const TAG_ORDER: MenuTag[] = ["chef_special", "halal", "vegetarian", "spicy", "s
 // Which dish each photo shows, where it shows one (the reverse of DISH_PHOTOS).
 const PHOTO_DISH = new Map(Object.entries(DISH_PHOTOS).map(([slug, photo]) => [photo as PhotoName, slug]));
 
-// Photos shown among each section's dishes. "soft" fades the edges of crops cut from the printed menu.
-const SECTION_PHOTOS: Partial<Record<MenuSection, { name: PhotoName; soft?: boolean }[]>> = {
-  starters: [{ name: "fishCake" }, { name: "soup" }, { name: "potatoWedges" }],
-  mains: [
-    { name: "hero" },
-    { name: "steakSet" },
-    { name: "pine2" },
-    { name: "buffaloChickenSet" },
-    { name: "seafoodPlatterPost" },
-    { name: "mexicanChicken" },
-    { name: "shashlikSet" },
-    { name: "chickenCheeseBurger" },
-    { name: "chickenPlate" },
-    { name: "clubSandwich" },
-    { name: "alfredoBake" },
-    { name: "penne" },
-    { name: "spaghetti" },
-  ],
-  coffee: [{ name: "coffeeCup" }, { name: "cappuccinoPost" }],
-  desserts: [{ name: "oreoCheesecakeReal" }, { name: "brownieReal" }],
-  beverages: [{ name: "lemonade" }],
+// The photos that go beside each category (by category slug), best first. A category's photos sit
+// only beside its own list, never under it or beside another category's.
+const CATEGORY_PHOTOS: Record<string, PhotoName[]> = {
+  "finger-foods": ["fishCake", "potatoWedges"],
+  soup: ["soup"],
+  "chicken-specials": ["buffaloChickenSet", "mexicanChicken", "chickenPlate"],
+  "pine-sets": ["hero", "shashlikSet", "pine2", "steakSet"],
+  "seafood-sets": ["seafoodPlatterPost"],
+  pasta: ["alfredoBake", "penne", "spaghetti"],
+  burgers: ["chickenCheeseBurger"],
+  sandwiches: ["clubSandwich"],
+  coffee: ["cappuccinoPost", "coffeeCup"],
+  desserts: ["oreoCheesecakeReal", "brownieReal"],
+  freezers: ["lemonade"],
 };
 
 type BranchMenuView = { branch: Branch; items: Map<string, MenuItem> };
@@ -53,30 +45,55 @@ export function MenuBrowser({ menu, branchMenus }: { menu: MenuCategory[]; branc
 
   const grouped = useMemo(() => {
     const match = (i: MenuItem) => filter === "all" || i.tags.includes(filter);
-    return SECTIONS.map((section) => {
-      const all = menu.filter((c) => c.section === section);
-      const categories = all.map((c) => ({ ...c, menu_items: c.menu_items.filter(match) })).filter((c) => c.menu_items.length > 0);
-      // With a filter on, a photo stays only if it can't mislead: its own dish is still listed, or it
-      // shows no particular dish and every dish in the section passes the filter (e.g. the coffee cup
-      // under Vegetarian). So Vegetarian never shows the fish cake.
-      const shown = new Set(categories.flatMap((c) => c.menu_items.map((i) => i.slug)));
-      const everyDishPasses = all.every((c) => c.menu_items.every(match));
-      const photos = (SECTION_PHOTOS[section] ?? []).filter(({ name }) => {
-        if (filter === "all") return true;
-        const dish = PHOTO_DISH.get(name);
-        return dish ? shown.has(dish) : everyDishPasses;
-      });
-      return { section, categories, photos };
-    }).filter((s) => s.categories.length > 0);
+    return SECTIONS.map((section) => ({
+      section,
+      categories: menu
+        .filter((c) => c.section === section)
+        .map((c) => {
+          const items = c.menu_items.filter(match);
+          // With a filter on, a photo stays only if it can't mislead: its own dish is still listed, or
+          // it shows no particular dish and every dish in the category passes the filter. So
+          // Vegetarian never shows the fish cake.
+          const shown = new Set(items.map((i) => i.slug));
+          const everyDishPasses = c.menu_items.every(match);
+          const photos = (CATEGORY_PHOTOS[c.slug] ?? []).filter((name) => {
+            if (filter === "all") return true;
+            const dish = PHOTO_DISH.get(name);
+            return dish ? shown.has(dish) : everyDishPasses;
+          });
+          return { ...c, menu_items: items, photos };
+        })
+        .filter((c) => c.menu_items.length > 0),
+    })).filter((s) => s.categories.length > 0);
   }, [menu, filter]);
 
+  // Changing the filter, or picking a section, brings the list into view from its top, instead of
+  // leaving the reader somewhere in the middle of a list that just changed under them.
+  const listTop = useRef<HTMLDivElement>(null);
+  const scrollBehavior = (): ScrollBehavior => (window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
+  const chooseFilter = (f: MenuTag | "all") => {
+    setFilter(f);
+    const el = listTop.current;
+    if (!el) return;
+    // The site header (80px) stays on screen, so stop just under it.
+    const top = el.getBoundingClientRect().top + window.scrollY - 80;
+    if (window.scrollY > top) window.scrollTo({ top, behavior: scrollBehavior() });
+  };
+  const goToSection = (e: React.MouseEvent<HTMLAnchorElement>, section: MenuSection) => {
+    const el = document.getElementById(`section-${section}`);
+    if (!el) return;
+    e.preventDefault();
+    el.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+    history.replaceState(null, "", `#section-${section}`);
+  };
+
   return (
-    <div className="grain grain-dark bg-pine-700 text-cream-100">
+    <div ref={listTop} className="grain grain-dark bg-pine-700 text-cream-100">
       <div className="sticky top-20 z-30 bg-pine-900/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-3.5 sm:px-8 md:flex-row md:items-center md:justify-between lg:px-12">
           <nav aria-label={t.nav.menu} className="no-scrollbar -mx-5 flex gap-7 overflow-x-auto px-5 md:mx-0 md:px-0">
             {grouped.map(({ section }) => (
-              <a key={section} href={`#section-${section}`} className="label shrink-0 text-cream-100/75 hover:text-mustard-400">
+              <a key={section} href={`#section-${section}`} onClick={(e) => goToSection(e, section)} className="label shrink-0 text-cream-100/75 hover:text-mustard-400">
                 {t.menu.sections[section]}
               </a>
             ))}
@@ -86,7 +103,7 @@ export function MenuBrowser({ menu, branchMenus }: { menu: MenuCategory[]; branc
               <button
                 key={f}
                 type="button"
-                onClick={() => setFilter(f)}
+                onClick={() => chooseFilter(f)}
                 aria-pressed={filter === f}
                 className={cn(
                   "shrink-0 font-medium transition-colors",
@@ -103,52 +120,88 @@ export function MenuBrowser({ menu, branchMenus }: { menu: MenuCategory[]; branc
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
         {grouped.length === 0 ? <p className="py-24 text-center text-cream-100/70">{t.menu.empty}</p> : null}
 
-        {grouped.map(({ section, categories, photos: sectionPhotos }) => {
-          // The dishes and photos share two balanced columns. Photos are capped at one per two dishes
-          // so a short list (or a filtered one) isn't left beside a tall stack of photos. One long
-          // list with at most one photo (Beverages) runs across two columns with the photo beside it,
-          // instead of one tall column next to empty space; a short section with two photos shows
-          // them side by side.
-          const count = categories.reduce((n, c) => n + c.menu_items.length, 0);
-          const photos = sectionPhotos.slice(0, Math.ceil(count / 2));
-          const splitList = categories.length === 1 && photos.length <= 1 && (count > 8 || photos.length === 0);
-          const pairPhotos = photos.length === 2 && count <= 8;
-          return (
-            <section key={section} id={`section-${section}`} className="scroll-mt-36 py-10 sm:py-12">
-              {/* The section (Starters, Mains...) heads its categories: h1 page title > h2 section > h3 category. */}
-              <h2 className="label mb-6 text-mustard-400">{t.menu.sections[section]}</h2>
-              {/* Each dish list and photo carries its own bottom padding (padding, not margin: margins are cut
-                  off unevenly at the foot of CSS columns). -mb-12 takes the last one back off, so the gap to the
-                  next section is the section's own padding and nothing more. */}
-              <div className={cn("-mb-12 gap-16", splitList ? photos.length > 0 && "lg:grid lg:grid-cols-3" : "md:columns-2")}>
-                {categories.map((cat) => (
-                  <div key={cat.id} className={cn("pb-12", splitList ? photos.length > 0 && "lg:col-span-2" : "break-inside-avoid")}>
-                    <h3 className="script pl-1 text-4xl text-cream-100 lowercase sm:text-5xl">{pickClient(cat, "name", locale)}</h3>
-                    <ul className={cn("mt-4", splitList ? "gap-16 md:columns-2 [&>li]:mb-4 [&>li]:break-inside-avoid" : "space-y-4")}>
-                      {cat.menu_items.map((item) => (
-                        <MenuRow key={item.id} item={item} branchMenus={resolvedBranchMenus} />
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-                {pairPhotos ? (
-                  <div className="grid pb-12 break-inside-avoid grid-cols-2 gap-4">
-                    {photos.map(({ name }) => (
-                      <MenuPhoto key={name} name={name} aspect="aspect-[4/5]" sizes="(min-width: 768px) 20vw, 50vw" />
-                    ))}
-                  </div>
-                ) : splitList ? (
-                  photos.map(({ name }) => (
-                    <MenuPhoto key={name} name={name} aspect="aspect-[4/5]" sizes="(min-width: 1024px) 25vw, (min-width: 768px) 28rem, 100vw" className="max-w-md pb-12 lg:max-w-none" />
-                  ))
-                ) : (
-                  photos.map(({ name, soft }) => <MenuPhoto key={name} name={name} soft={soft} className="break-inside-avoid pb-12" />)
-                )}
-              </div>
-            </section>
-          );
-        })}
+        {grouped.map(({ section, categories }) => (
+          <section key={section} id={`section-${section}`} className="scroll-mt-36 py-9 sm:py-11">
+            {/* The section (Starters, Mains...) heads its categories: h1 page title > h2 section > h3 category. */}
+            <h2 className="label mb-5 text-mustard-400">{t.menu.sections[section]}</h2>
+            <div className="space-y-12">
+              {categories.map((cat) => (
+                <CategoryBlock key={cat.id} name={pickClient(cat, "name", locale)} photos={cat.photos}>
+                  {cat.menu_items.map((item) => (
+                    <MenuRow key={item.id} item={item} branchMenus={resolvedBranchMenus} />
+                  ))}
+                </CategoryBlock>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    </div>
+  );
+}
 
+/**
+ * One category: its dishes on the left and its own photos on the right, sized to the list so neither
+ * side runs on into empty space.
+ * - No photo: the list runs across both columns.
+ * - A long list with one photo (Beverages): the list in two columns, the photo in a third.
+ * - Otherwise two columns: one photo (wider and shorter beside a short list), or two side by side
+ *   (stacked for a long list), plus a third underneath once the list is long enough.
+ */
+function CategoryBlock({ name, photos, children }: { name: string; photos: PhotoName[]; children: React.ReactNode[] }) {
+  const n = children.length;
+  const title = <h3 className="script pl-1 text-4xl text-cream-100 lowercase sm:text-5xl">{name}</h3>;
+  const splitList = "gap-16 md:columns-2 [&>li]:mb-4 [&>li]:break-inside-avoid";
+
+  if (photos.length === 0) {
+    return (
+      <div>
+        {title}
+        <ul className={cn("mt-4", n > 1 ? cn(splitList, "-mb-4") : "")}>{children}</ul>
+      </div>
+    );
+  }
+
+  if (n >= 10 && photos.length === 1) {
+    return (
+      <div className="grid gap-x-16 gap-y-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          {title}
+          <ul className={cn("mt-4 -mb-4", splitList)}>{children}</ul>
+        </div>
+        <MenuPhoto name={photos[0]} aspect="aspect-[4/5]" sizes="(min-width: 1024px) 25vw, (min-width: 768px) 28rem, 100vw" className="max-w-md lg:max-w-none" />
+      </div>
+    );
+  }
+
+  // Six or more dishes take a third photo under the pair; seven or more with only two photos stack
+  // them, wide, one above the other, which matches a long list's height better than a pair.
+  const count = photos.length >= 2 && n >= 3 ? (n >= 6 && photos.length >= 3 ? 3 : 2) : 1;
+  const [first, second, third] = photos.slice(0, count);
+  const stacked = count === 2 && n >= 7;
+  return (
+    <div className="grid items-start gap-x-16 gap-y-6 md:grid-cols-2">
+      <div>
+        {title}
+        <ul className="mt-4 space-y-4">{children}</ul>
+      </div>
+      <div className="space-y-4">
+        {stacked ? (
+          <>
+            <MenuPhoto name={first} aspect="aspect-[16/9]" />
+            <MenuPhoto name={second} aspect="aspect-[16/9]" />
+          </>
+        ) : second ? (
+          <div className="grid grid-cols-2 gap-4">
+            <MenuPhoto name={first} aspect="aspect-[4/5]" sizes="(min-width: 768px) 20vw, 50vw" />
+            <MenuPhoto name={second} aspect="aspect-[4/5]" sizes="(min-width: 768px) 20vw, 50vw" />
+          </div>
+        ) : (
+          <MenuPhoto name={first} aspect={n <= 3 ? "aspect-[16/9]" : "aspect-[4/3]"} />
+        )}
+        {/* The third photo only on wider screens, where it sits beside the list; on phones it would just
+            make the page longer. */}
+        {third ? <MenuPhoto name={third} aspect="aspect-[16/9]" className="hidden md:block" /> : null}
       </div>
     </div>
   );
@@ -156,13 +209,11 @@ export function MenuBrowser({ menu, branchMenus }: { menu: MenuCategory[]; branc
 
 function MenuPhoto({
   name,
-  soft,
   aspect = "aspect-[4/3]",
   className,
   sizes = "(min-width: 768px) 40vw, 100vw",
 }: {
   name: PhotoName;
-  soft?: boolean;
   aspect?: string;
   className?: string;
   sizes?: string;
@@ -176,7 +227,7 @@ function MenuPhoto({
         width={PHOTOS[name].width}
         height={PHOTOS[name].height}
         sizes={sizes}
-        className={cn("w-full", soft ? "soft-edges h-auto" : cn(aspect, "rounded-md object-cover"))}
+        className={cn("w-full rounded-md object-cover", aspect)}
       />
       {t.photos[name].caption ? <figcaption className="label mt-3 text-cream-100/60">{t.photos[name].caption}</figcaption> : null}
     </figure>

@@ -103,10 +103,10 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
                   <QuietLink href={mapsDirectionsUrl(o.mapQuery)} external>
                     {t.visit.directions}
                   </QuietLink>
+                  {/* Scrolls down to the map (#map) once it shows this outlet. */}
                   {outlets.length > 1 ? (
                     <Link
                       href={`/visit?outlet=${o.slug}#map`}
-                      scroll={false}
                       aria-current={o.slug === selected.slug ? "true" : undefined}
                       className="text-[0.95rem] text-ink-muted transition-colors hover:text-ink aria-[current=true]:text-ink"
                     >
