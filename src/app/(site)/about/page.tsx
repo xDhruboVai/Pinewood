@@ -24,10 +24,6 @@ const ROOMS: { name: PhotoName; span: string; aspect: string; offset?: string }[
   { name: "flowerCorner", span: "md:col-span-7 md:col-start-3", aspect: "aspect-[4/3]", offset: "md:mt-10" },
 ];
 
-/**
- * About us, in order: 1. intro (since 2016), 2. what Pinewood is (what we serve), 3. the rooms,
- * 4. the team, 5. come and see us. Only facts the owners have given; don't add history or claims.
- */
 export default async function AboutPage() {
   const { t } = await getI18n();
 

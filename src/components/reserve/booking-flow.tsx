@@ -419,8 +419,6 @@ export function BookingFlow({ areas, branches }: { areas: Area[]; branches: Bran
                   {t.reserve.timesRetry}
                 </button>
               </p>
-            ) : hour !== "" && !loading && timeProblem ? (
-              <p className="text-sm text-accent-ink">{timeProblem}</p>
             ) : !loading && times.length === 0 ? (
               <p className="text-sm text-ink-muted">
                 {t.reserve.noSlots}{" "}
@@ -428,6 +426,8 @@ export function BookingFlow({ areas, branches }: { areas: Area[]; branches: Bran
                   {SITE.phones[0].display}
                 </a>
               </p>
+            ) : hour !== "" && !loading && timeProblem ? (
+              <p className="text-sm text-accent-ink">{timeProblem}</p>
             ) : (
               <p className="text-sm text-ink-muted">
                 {firstTime && lastTime ? t.reserve.timeRange(formatTime(firstTime, locale), formatTime(lastTime, locale)) : t.reserve.timeHalfHour}
