@@ -76,6 +76,43 @@ describe("branch isolation", () => {
     expect(rows.find((x) => x.r.id === b.id)?.r.branch.slug).toBe("banani");
   });
 
+  it("limits managers to their assigned branch while owners see every branch", async () => {
+    const start = dhaka(9, "15:00");
+    const ownBooking = await book(db, { area: A.d6, start, party: 2 });
+    const otherBooking = await book(db, { area: A.banani, start, party: 2 });
+    const manager = await staffUser(db, "manager");
+    await db.q("update public.staff_profiles set branch_id = $2 where user_id = $1", [manager, B["dhanmondi-6"]]);
+    const day = start.slice(0, 10);
+
+    const managerRows = await db.as<{ r: { id: string } }>(
+      "authenticated",
+      "select r from public.admin_list_reservations($1::date, $1::date) r",
+      [day],
+      manager,
+    );
+    expect(managerRows.map(({ r }) => r.id)).toContain(ownBooking.id);
+    expect(managerRows.map(({ r }) => r.id)).not.toContain(otherBooking.id);
+    expect(await db.as("authenticated", "select id from public.reservations where id = $1", [otherBooking.id], manager)).toEqual([]);
+    await expect(
+      db.as("authenticated", "select public.admin_delete_reservation($1)", [otherBooking.id], manager),
+    ).rejects.toThrow(pwError("PW_NOT_FOUND"));
+
+    await db.as("authenticated", "select public.admin_set_status($1, 'confirmed', null)", [ownBooking.id], manager);
+    expect((await db.q("select status from public.reservations where id = $1", [ownBooking.id]))[0].status).toBe("confirmed");
+    await expect(
+      db.as("authenticated", "select public.admin_set_status($1, 'confirmed', null)", [otherBooking.id], manager),
+    ).rejects.toThrow(pwError("PW_NOT_FOUND"));
+
+    const owner = await staffUser(db, "owner");
+    const ownerRows = await db.as<{ r: { id: string } }>(
+      "authenticated",
+      "select r from public.admin_list_reservations($1::date, $1::date) r",
+      [day],
+      owner,
+    );
+    expect(ownerRows.map(({ r }) => r.id)).toEqual(expect.arrayContaining([ownBooking.id, otherBooking.id]));
+  });
+
   it("areas without a branch (the old placeholder areas) are never offered for a branch", async () => {
     await db.q("update public.areas set is_active = true where branch_id is null");
     const s = dhaka(8, "12:00");

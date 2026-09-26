@@ -163,11 +163,16 @@ function MenuRow({ item, branchMenus }: { item: MenuItem; branchMenus: BranchMen
     <li className={cn("grid grid-cols-[1fr_auto] items-baseline gap-x-3", unavailableEverywhere && "opacity-45")}>
       <span className="text-[0.95rem] font-semibold tracking-[0.03em] text-cream-100 uppercase">{pickClient(item, "name", locale)}</span>
       {pricesDiffer ? (
-        <span className="col-span-2 text-sm font-semibold tabular-nums text-cream-100">
-          {branchPrices.map(({ branch, price }, index) => (
-            <span key={branch.id}>{index > 0 ? " · " : null}{locale === "bn" ? branch.name_bn : branch.name_en}: {formatPrice(price, locale)}</span>
+        <dl className="col-span-2 mt-1 space-y-1 border-l-2 border-mustard-400/55 pl-3">
+          {branchPrices.map(({ branch, price }) => (
+            <div key={branch.id} className="flex min-w-0 items-baseline justify-between gap-4 border-t border-cream-100/10 pt-1 first:border-0 first:pt-0">
+              <dt className="min-w-0 break-words text-xs leading-relaxed text-cream-100/70">
+                {locale === "bn" ? branch.name_bn : branch.name_en}
+              </dt>
+              <dd className="shrink-0 text-sm font-semibold tabular-nums text-cream-100">{formatPrice(price, locale)}</dd>
+            </div>
           ))}
-        </span>
+        </dl>
       ) : (
         <span className={cn("text-[0.95rem] font-semibold tabular-nums text-cream-100", unavailableEverywhere && "line-through")}>
           {formatPrice(branchPrices[0]?.price ?? item.price, locale)}

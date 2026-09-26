@@ -6,6 +6,7 @@ import { signOut } from "@/actions/admin";
 import { Logo } from "@/components/site/logo";
 
 const LINKS = [
+  { href: "/manager/reservations", label: "Reservations" },
   { href: "/manager/menu", label: "Branch menu" },
   { href: "/manager/staff", label: "Staff" },
 ];

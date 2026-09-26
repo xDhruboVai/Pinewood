@@ -135,9 +135,19 @@ export async function staffUser(db: TestDb, role: "owner" | "manager" | "foh" | 
   return id;
 }
 
+export async function branchManagerForArea(db: TestDb, areaId: string) {
+  const id = await staffUser(db, "manager");
+  await db.q(
+    "update public.staff_profiles set branch_id = (select branch_id from public.areas where id = $2) where user_id = $1",
+    [id, areaId],
+  );
+  return id;
+}
+
 /** Status change through the staff RPC (as a manager unless a user is given). */
 export async function setStatus(db: TestDb, id: string, status: string, userId?: string) {
-  const uid = userId ?? (await staffUser(db, "manager"));
+  const [booking] = userId ? [] : await db.q<{ area_id: string }>("select area_id from public.reservations where id = $1", [id]);
+  const uid = userId ?? (await branchManagerForArea(db, booking.area_id));
   await db.as("authenticated", "select public.admin_set_status($1, $2::public.reservation_status, null)", [id, status], uid);
 }
 

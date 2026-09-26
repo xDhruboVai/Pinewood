@@ -1,7 +1,7 @@
 // Reservation lifecycle: every status transition (the reservations_before_status trigger decides),
 // which email each change queues, waitlist promotion, housekeeping and the email retry queue.
 import { beforeAll, describe, expect, it } from "vitest";
-import { book, dhaka, enableEmail, hold, pwError, setStatus, staffUser, standardFixture, openTestDb } from "./helpers";
+import { book, branchManagerForArea, dhaka, enableEmail, hold, pwError, setStatus, staffUser, standardFixture, openTestDb } from "./helpers";
 
 const db = openTestDb();
 let A: Record<string, string>;
@@ -23,6 +23,10 @@ beforeAll(async () => {
   big = a.id;
   await db.q("insert into public.dining_tables (area_id, label, seats) select $1, 'H' || g, 10 from generate_series(1, 20) g", [big]);
   manager = await staffUser(db, "manager");
+  await db.q(
+    "update public.staff_profiles set branch_id = (select branch_id from public.areas where id = $2) where user_id = $1",
+    [manager, big],
+  );
   await enableEmail(db);
 });
 
@@ -80,8 +84,9 @@ describe("status transitions (every pair)", () => {
     const lapsed = await book(db, { area: A.d6out, start: s, party: 4 });
     await db.q("update public.reservations set expires_at = now() - interval '1 minute' where id = $1", [lapsed.id]);
     const other = await book(db, { area: A.d6out, start: s, party: 4 }); // seats re-sold
-    await setStatus(db, other.id, "confirmed", manager);
-    await expect(setStatus(db, lapsed.id, "confirmed", manager)).rejects.toThrow(pwError("PW_SLOT_FULL"));
+    const d6Manager = await branchManagerForArea(db, A.d6out);
+    await setStatus(db, other.id, "confirmed", d6Manager);
+    await expect(setStatus(db, lapsed.id, "confirmed", d6Manager)).rejects.toThrow(pwError("PW_SLOT_FULL"));
   });
 });
 
@@ -131,7 +136,7 @@ describe("waitlist", () => {
     const s = dhaka(21, "12:00");
     await expect(join(s, "+8801788000001")).rejects.toThrow(pwError("PW_SLOT_AVAILABLE"));
     const b = await book(db, { area: A.d6out, start: s, party: 4 });
-    await setStatus(db, b.id, "confirmed", manager);
+    await setStatus(db, b.id, "confirmed", await branchManagerForArea(db, A.d6out));
     await expect(join(s, "+8801788000001")).rejects.toThrow(pwError("PW_NOT_WAITLISTABLE"));
   });
 
@@ -141,7 +146,7 @@ describe("waitlist", () => {
     const [{ id: entry }] = await join(s, "+8801788000002");
     await expect(join(s, "+8801788000002")).rejects.toThrow(pwError("PW_ALREADY_WAITLISTED"));
 
-    await setStatus(db, pending.id, "rejected", manager); // frees the 4 seats
+    await setStatus(db, pending.id, "rejected", await branchManagerForArea(db, A.d6out)); // frees the 4 seats
     const [w] = await db.q<{ status: string; promoted_reservation_id: string }>("select status, promoted_reservation_id from public.waitlist_entries where id = $1", [entry]);
     expect(w.status).toBe("promoted");
     const [r] = await db.q("select status, source, phone from public.reservations where id = $1", [w.promoted_reservation_id]);

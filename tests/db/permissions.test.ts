@@ -2,7 +2,7 @@
 // anon = the publishable key in a browser, authenticated = a signed-in user (staff or not),
 // service_role = the website's server. Nothing is loosened to make these pass.
 import { beforeAll, describe, expect, it } from "vitest";
-import { book, dhaka, pwError, setStatus, staffUser, standardFixture, openTestDb } from "./helpers";
+import { book, branchManagerForArea, dhaka, pwError, setStatus, staffUser, standardFixture, openTestDb } from "./helpers";
 
 const db = openTestDb();
 let A: Record<string, string>;
@@ -21,6 +21,7 @@ beforeAll(async () => {
   nobody = await staffUser(db, null); // signed in, not staff
   foh = await staffUser(db, "foh");
   manager = await staffUser(db, "manager");
+  await db.q("update public.staff_profiles set branch_id = $2 where user_id = $1", [manager, branches["dhanmondi-6"]]);
   owner = await staffUser(db, "owner");
   retired = await staffUser(db, "manager", false);
 });
@@ -286,23 +287,25 @@ describe("deleting a booking", () => {
 
   it("only a manager can, and only once the booking is over", async () => {
     const live = (await book(db, { area: A.d6, start: dhaka(5, "13:00") })).id;
-    await expect(del(live, manager)).rejects.toThrow(pwError("PW_NOT_DELETABLE")); // pending
+    const d6Manager = await branchManagerForArea(db, A.d6);
+    await expect(del(live, d6Manager)).rejects.toThrow(pwError("PW_NOT_DELETABLE")); // pending
     await setStatus(db, live, "confirmed");
-    await expect(del(live, manager)).rejects.toThrow(pwError("PW_NOT_DELETABLE"));
+    await expect(del(live, d6Manager)).rejects.toThrow(pwError("PW_NOT_DELETABLE"));
     await setStatus(db, live, "cancelled");
     await expect(del(live, foh)).rejects.toThrow(pwError("PW_FORBIDDEN"));
     await expect(del(live, nobody)).rejects.toThrow(pwError("PW_FORBIDDEN"));
     await expect(db.as("anon", "select public.admin_delete_reservation($1)", [live])).rejects.toThrow(DENIED);
     expect(await exists(live)).toBe(true);
-    await del(live, manager);
+    await del(live, d6Manager);
     expect(await exists(live)).toBe(false);
-    await expect(del(live, manager)).rejects.toThrow(pwError("PW_NOT_FOUND"));
+    await expect(del(live, d6Manager)).rejects.toThrow(pwError("PW_NOT_FOUND"));
   });
   it("takes the booking's email log and tables with it", async () => {
     const r = (await book(db, { area: A.d6, start: dhaka(6, "13:00") })).id;
+    const d6Manager = await branchManagerForArea(db, A.d6);
     await setStatus(db, r, "rejected");
     expect((await db.q("select 1 from public.email_log where reservation_id = $1", [r])).length).toBeGreaterThan(0);
-    await del(r, manager);
+    await del(r, d6Manager);
     expect(await db.q("select 1 from public.email_log where reservation_id = $1", [r])).toEqual([]);
     expect(await db.q("select 1 from public.reservation_tables where reservation_id = $1", [r])).toEqual([]);
   });
