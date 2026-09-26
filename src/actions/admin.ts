@@ -456,6 +456,64 @@ export async function updateStaffMember(userId: string, patch: { role?: StaffRol
   return { ok: true, data: undefined };
 }
 
+const managerInfoSchema = z.object({
+  fullName: z.string().trim().min(2).max(80),
+  email: z.string().trim().toLowerCase().email(),
+});
+
+export async function updateManagerInformation(userId: string, input: unknown): Promise<ActionResult> {
+  const auth = await staffCheck();
+  if (!auth.ok) return auth;
+  if (auth.staff.role !== "owner") return { ok: false, error: "Only owners can edit manager information." };
+  if (!uuid.safeParse(userId).success || userId === auth.staff.userId) return { ok: false, error: "Invalid manager." };
+  const parsed = managerInfoSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Enter a valid name and email address." };
+
+  const admin = createAdminClient();
+  const { data: profile, error: profileError } = await admin
+    .from("staff_profiles")
+    .select("role")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (profileError || profile?.role !== "manager") return { ok: false, error: "Manager not found." };
+
+  const { error: authError } = await admin.auth.admin.updateUserById(userId, {
+    email: parsed.data.email,
+    email_confirm: true,
+    user_metadata: { full_name: parsed.data.fullName },
+  });
+  if (authError) return fail(authError);
+
+  const { error } = await admin.from("staff_profiles").update({ full_name: parsed.data.fullName }).eq("user_id", userId);
+  if (error) return fail(error);
+  revalidatePath("/admin/managers");
+  revalidatePath("/admin/staff");
+  return { ok: true, data: undefined };
+}
+
+export async function deleteInactiveManager(userId: string): Promise<ActionResult> {
+  const auth = await staffCheck();
+  if (!auth.ok) return auth;
+  if (auth.staff.role !== "owner") return { ok: false, error: "Only owners can delete managers." };
+  if (!uuid.safeParse(userId).success || userId === auth.staff.userId) return { ok: false, error: "Invalid manager." };
+
+  const admin = createAdminClient();
+  const { data: profile, error: profileError } = await admin
+    .from("staff_profiles")
+    .select("role, is_active")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (profileError || profile?.role !== "manager" || profile.is_active) {
+    return { ok: false, error: "Only deactivated managers can be deleted." };
+  }
+
+  const { error } = await admin.auth.admin.deleteUser(userId);
+  if (error) return fail(error);
+  revalidatePath("/admin/managers");
+  revalidatePath("/admin/staff");
+  return { ok: true, data: undefined };
+}
+
 // ---------------------------------------------------------------------------
 // Session
 // ---------------------------------------------------------------------------

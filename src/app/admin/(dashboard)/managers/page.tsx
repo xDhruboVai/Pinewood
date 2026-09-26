@@ -9,7 +9,7 @@ export default async function Page() {
   const admin = createAdminClient();
   const [{ data: users }, { data: profiles }, { data: branches }, { data: history }] = await Promise.all([
     admin.auth.admin.listUsers({ perPage: 1000 }),
-    admin.from("staff_profiles").select("user_id, full_name, role, branch_id, is_active").in("role", ["manager", "foh"]).eq("is_active", true),
+    admin.from("staff_profiles").select("user_id, full_name, role, branch_id, is_active").in("role", ["manager", "foh"]),
     admin.from("branches").select("id, name_en, name_bn, slug, is_active, sort_order").order("sort_order"),
     admin.from("manager_history").select("id, staff_user_id, full_name, event, branch_name, actor_user_id, created_at").order("created_at", { ascending: false }).order("id", { ascending: false }).limit(100),
   ]);

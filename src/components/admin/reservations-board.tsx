@@ -13,7 +13,6 @@ import {
   Clock,
   Ellipsis,
   Eye,
-  Inbox,
   MapPin,
   Search,
   X,
@@ -25,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
 import { parseBookingNotes } from "@/lib/booking-notes";
 import { createClient } from "@/lib/supabase/client";
-import { dhakaDate, formatDate, formatPrice, formatTime, isoToDhakaDate } from "@/lib/format";
+import { dhakaDate, formatDate, formatPrice, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { AdminReservation, ReservationStatus } from "@/lib/types";
 
@@ -110,8 +109,6 @@ export function ReservationsBoard({ initialDate, canDelete = false }: { initialD
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [viewingId, setViewingId] = useState<string | null>(null);
-  const [inboxOpen, setInboxOpen] = useState(false);
-  const [inboxRows, setInboxRows] = useState<AdminReservation[]>([]);
 
   // Only the latest load may fill the board: flicking through days quickly, a slower answer for an
   // earlier day is dropped instead of showing that day's bookings under the new date.
@@ -127,20 +124,8 @@ export function ReservationsBoard({ initialDate, canDelete = false }: { initialD
     setLoading(false);
   }, [supabase, date]);
 
-  // Load upcoming reservations (next 30 days) for the inbox
-  const loadInbox = useCallback(async () => {
-    const today = dhakaDate();
-    const future = shiftDate(today, 30);
-    const res = await supabase.rpc("admin_list_reservations", { p_from: today, p_to: future });
-    if (!res.error && res.data) {
-      setInboxRows((res.data as AdminReservation[]).sort((a, b) => a.starts_at.localeCompare(b.starts_at)));
-    }
-  }, [supabase]);
-
   const loadRef = useRef(load);
   loadRef.current = load;
-  const loadInboxRef = useRef(loadInbox);
-  loadInboxRef.current = loadInbox;
 
   useEffect(() => {
     setLoading(true);
@@ -148,16 +133,11 @@ export function ReservationsBoard({ initialDate, canDelete = false }: { initialD
   }, [load]);
 
   useEffect(() => {
-    loadInbox();
-  }, [loadInbox]);
-
-  useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const refresh = () => {
       clearTimeout(timer);
       timer = setTimeout(() => {
         loadRef.current();
-        loadInboxRef.current();
       }, 300);
     };
     const channel = supabase
@@ -191,20 +171,12 @@ export function ReservationsBoard({ initialDate, canDelete = false }: { initialD
   const declinedCount = rows.filter((r) => r.status === "rejected").length;
   const isToday = date === dhakaDate();
   const filterLabel = FILTERS.find((f) => f.key === filter)!.label.toLowerCase();
-  const viewing = viewingId ? (rows.find((r) => r.id === viewingId) ?? inboxRows.find((r) => r.id === viewingId) ?? null) : null;
-  const pendingUpcoming = useMemo(() => inboxRows.filter((r) => r.status === "pending"), [inboxRows]);
-
-  const openFromInbox = (r: AdminReservation) => {
-    const targetDate = isoToDhakaDate(r.starts_at);
-    setDate(targetDate);
-    setViewingId(r.id);
-    setInboxOpen(false);
-  };
+  const viewing = viewingId ? rows.find((r) => r.id === viewingId) ?? null : null;
 
   return (
     <div>
-      {/* Page header, set like the public reservation page: gold eyebrow, a plain bold title (staff
-          read this all day, so no decorative serif), one line of text. Beside it, the day: arrows either side of the date (the date itself opens the
+      {/* Page header, set like the public reservation page: gold eyebrow, serif title, one line of
+          text. Beside it, the day: arrows either side of the date (the date itself opens the
           calendar), Today and the inbox as quiet text actions, and the day's numbers as a plain strip
           with thin rules between them, not cards. */}
       <div className="flex flex-wrap items-end justify-between gap-x-12 gap-y-8">
@@ -251,17 +223,6 @@ export function ReservationsBoard({ initialDate, canDelete = false }: { initialD
                 onClick={() => setDate(dhakaDate())}
               >
                 Today
-              </button>
-              <span aria-hidden className="h-3.5 w-px bg-line" />
-              <button
-                type="button"
-                onClick={() => setInboxOpen(true)}
-                aria-label={`Inbox: ${pendingUpcoming.length} pending`}
-                className={cn(TEXT_ACTION, "inline-flex items-center gap-2 text-pine-700 hover:text-ink")}
-              >
-                <Inbox aria-hidden className="size-3.5" strokeWidth={1.75} />
-                Inbox
-                {pendingUpcoming.length > 0 ? <span className="text-accent-ink tabular-nums">{pendingUpcoming.length} pending</span> : null}
               </button>
             </div>
           </div>
@@ -373,13 +334,6 @@ export function ReservationsBoard({ initialDate, canDelete = false }: { initialD
       ) : null}
 
       <ReservationPanel r={viewing} canDelete={canDelete} onChanged={load} onClose={() => setViewingId(null)} />
-      <InboxPanel
-        open={inboxOpen}
-        rows={inboxRows}
-        pendingCount={pendingUpcoming.length}
-        onSelect={openFromInbox}
-        onClose={() => setInboxOpen(false)}
-      />
     </div>
   );
 }
@@ -847,11 +801,11 @@ function InboxPanel({
     >
       {open ? (
         <div className="flex h-full flex-col">
-          {/* A booking ledger sliding over the page: gold eyebrow, bold title, one line of text. */}
+          {/* A booking ledger sliding over the page: gold eyebrow, serif title, one line of text. */}
           <div className="flex items-start justify-between gap-4 px-7 pt-7 pb-5">
             <div>
               <p className="eyebrow">Next 30 days</p>
-              <h2 id={titleId} className="mt-1.5 text-[1.5rem] leading-tight font-semibold text-ink">
+              <h2 id={titleId} className="display mt-1.5 text-[2rem] leading-tight text-ink">
                 Reservations Inbox
               </h2>
               <p className="mt-1.5 text-sm text-ink-muted">Preview incoming bookings and requests across all future dates.</p>
@@ -885,12 +839,12 @@ function InboxPanel({
           </div>
 
           {/* The bookings as one list with thin rules between them: state and day on the left, time on
-              the right, the guest's name in bold, then party, date and branch, the note, and the
+              the right, the guest's name in serif, then party, date and branch, the note, and the
               reference with the way to the register. Pending ones carry a thin gold rule. */}
           <div className="flex-1 overflow-y-auto">
             {visible.length === 0 ? (
               <div className="px-7 py-20 text-center">
-                <p className="text-lg font-semibold text-ink">{filter === "pending" ? "Nothing waiting" : "No upcoming reservations"}</p>
+                <p className="display text-2xl text-ink">{filter === "pending" ? "Nothing waiting" : "No upcoming reservations"}</p>
                 <p className="mt-2 text-sm text-ink-muted">New requests from guests appear here as they come in.</p>
               </div>
             ) : (
@@ -917,7 +871,7 @@ function InboxPanel({
                           </span>
                           <span className="text-sm font-semibold text-ink uppercase tabular-nums">{formatTime(r.starts_at)}</span>
                         </span>
-                        <span className="mt-1.5 block text-[1.1rem] leading-snug font-semibold text-ink group-hover:text-pine-700">{r.customer_name}</span>
+                        <span className="display mt-1.5 block text-[1.4rem] leading-tight text-ink group-hover:text-pine-700">{r.customer_name}</span>
                         <span className="mt-1 block text-[0.85rem] text-ink-muted">
                           {r.party_size} {r.party_size === 1 ? "person" : "people"}
                           <span aria-hidden className="mx-1.5">·</span>

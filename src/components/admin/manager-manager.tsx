@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { inviteStaff, updateStaffMember } from "@/actions/admin";
+import { deleteInactiveManager, inviteStaff, updateManagerInformation, updateStaffMember } from "@/actions/admin";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/form";
 import { relativeFromNow } from "./ui";
@@ -25,6 +25,16 @@ export function ManagerManager({ rows, branches, history }: { rows: ManagerRow[]
   const [pending, start] = useTransition();
   const [form, setForm] = useState({ fullName: "", email: "", branchId: "", temporaryPassword: "" });
   const [assignments, setAssignments] = useState<Record<string, string>>({});
+  const [editing, setEditing] = useState<ManagerRow | null>(null);
+  const [editForm, setEditForm] = useState({ fullName: "", email: "" });
+  const editDialog = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = editDialog.current;
+    if (!dialog) return;
+    if (editing && !dialog.open) dialog.showModal();
+    if (!editing && dialog.open) dialog.close();
+  }, [editing]);
 
   const run = (action: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) =>
     start(async () => {
@@ -80,9 +90,32 @@ export function ManagerManager({ rows, branches, history }: { rows: ManagerRow[]
                   <td className="hidden px-4 py-3 text-ink-muted md:table-cell">{row.lastSignIn ? relativeFromNow(row.lastSignIn) : "Never"}</td>
                   <td className="px-4 py-3 text-right">
                     {row.role === "manager" ? (
-                      <Button size="sm" variant="outline" disabled={pending || row.isMe} onClick={() => run(() => updateStaffMember(row.user_id, row.is_active ? { role: "foh", branch_id: null, is_active: false } : { is_active: true }), row.is_active ? "Manager role and access removed" : "Manager access restored")}>
-                        {row.is_active ? "Remove manager" : "Restore access"}
-                      </Button>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        {row.is_active ? (
+                          <Button size="sm" variant="outline" disabled={pending || row.isMe} onClick={() => run(() => updateStaffMember(row.user_id, { is_active: false }), "Manager deactivated")}>
+                            Deactivate
+                          </Button>
+                        ) : (
+                          <>
+                            <Button size="sm" variant="outline" disabled={pending || row.isMe} onClick={() => run(() => updateStaffMember(row.user_id, { is_active: true }), "Manager reactivated")}>
+                              Reactivate
+                            </Button>
+                            <Button size="sm" variant="danger" disabled={pending || row.isMe} onClick={() => {
+                              if (window.confirm(`Delete ${row.full_name || row.email}'s manager account permanently? This cannot be undone.`)) {
+                                run(() => deleteInactiveManager(row.user_id), "Manager account deleted");
+                              }
+                            }}>
+                              Delete
+                            </Button>
+                          </>
+                        )}
+                        <Button size="sm" variant="outline" disabled={pending || row.isMe} onClick={() => {
+                          setEditForm({ fullName: row.full_name, email: row.email });
+                          setEditing(row);
+                        }}>
+                          Edit
+                        </Button>
+                      </div>
                     ) : (
                       <Button size="sm" variant="outline" disabled={pending || row.isMe || !assignments[row.user_id]} onClick={() => run(() => updateStaffMember(row.user_id, { role: "manager", branch_id: assignments[row.user_id], is_active: true }), "Manager appointed")}>
                         Make manager
@@ -96,6 +129,37 @@ export function ManagerManager({ rows, branches, history }: { rows: ManagerRow[]
           </table>
         </div>
       </section>
+
+      <dialog
+        ref={editDialog}
+        aria-labelledby="edit-manager-title"
+        onClose={() => setEditing(null)}
+        onClick={(event) => event.target === event.currentTarget && event.currentTarget.close()}
+        className="fixed inset-0 m-auto w-[min(28rem,calc(100%-2rem))] rounded-sm border border-line bg-canvas p-6 text-ink shadow-xl backdrop:bg-ink/40"
+      >
+        {editing ? (
+          <form className="space-y-4" onSubmit={(event) => {
+            event.preventDefault();
+            const userId = editing.user_id;
+            run(() => updateManagerInformation(userId, editForm), "Manager information updated", () => setEditing(null));
+          }}>
+            <div>
+              <h2 id="edit-manager-title" className="display text-2xl">Edit manager information</h2>
+              <p className="mt-1 text-sm text-ink-muted">Update the manager&apos;s name and email address.</p>
+            </div>
+            <Field label="Full name" htmlFor="edit-manager-name">
+              <Input id="edit-manager-name" value={editForm.fullName} onChange={(event) => setEditForm({ ...editForm, fullName: event.target.value })} required minLength={2} maxLength={80} />
+            </Field>
+            <Field label="Email" htmlFor="edit-manager-email">
+              <Input id="edit-manager-email" type="email" value={editForm.email} onChange={(event) => setEditForm({ ...editForm, email: event.target.value })} required />
+            </Field>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" disabled={pending} onClick={() => setEditing(null)}>Cancel</Button>
+              <Button type="submit" variant="pine" disabled={pending}>Save changes</Button>
+            </div>
+          </form>
+        ) : null}
+      </dialog>
 
       <section className="lg:col-span-4">
         <h2 className="display text-3xl text-ink">Appoint a branch manager</h2>
