@@ -20,6 +20,7 @@ export default async function Page() {
     return {
       ...profile,
       email: user?.email ?? "",
+      phone: user?.phone ?? null,
       lastSignIn: user?.last_sign_in_at ?? null,
       isMe: user?.id === me.userId,
     };

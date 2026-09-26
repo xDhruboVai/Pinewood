@@ -10,7 +10,7 @@ import { relativeFromNow } from "./ui";
 import { formatDate, formatTime } from "@/lib/format";
 import type { Branch, StaffProfile } from "@/lib/types";
 
-export type ManagerRow = StaffProfile & { email: string; lastSignIn: string | null; isMe: boolean };
+export type ManagerRow = StaffProfile & { email: string; phone: string | null; lastSignIn: string | null; isMe: boolean };
 export type ManagerHistoryRow = {
   id: number;
   full_name: string;
@@ -69,6 +69,7 @@ export function ManagerManager({ rows, branches, history }: { rows: ManagerRow[]
                   <td className="px-4 py-3">
                     <p className="font-semibold text-ink">{row.full_name || "No name"} {row.isMe ? <span className="font-normal text-ink-muted">(you)</span> : null}</p>
                     <p className="text-xs text-ink-muted">{row.email}</p>
+                    {row.phone ? <p className="text-xs text-ink-muted">{row.phone}</p> : null}
                   </td>
                   <td className="px-4 py-3 text-ink">{row.role === "manager" ? "Branch manager" : "Front of house"}</td>
                   <td className="px-4 py-3">
