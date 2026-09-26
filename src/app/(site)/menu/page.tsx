@@ -8,10 +8,12 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t.nav.menu, description: t.menu.lede };
 }
 
-export default async function MenuPage({ searchParams }: { searchParams: Promise<{ branch?: string }> }) {
-  const [{ t }, branches, params] = await Promise.all([getI18n(), getBranches(), searchParams]);
-  const selectedBranch = branches.find((branch) => branch.slug === params.branch) ?? branches[0] ?? null;
-  const menu = await getMenu(selectedBranch?.id ?? null);
+export default async function MenuPage() {
+  const [{ t }, branches] = await Promise.all([getI18n(), getBranches()]);
+  const [menu, branchMenus] = await Promise.all([
+    getMenu(),
+    Promise.all(branches.map(async (branch) => ({ branch, menu: await getMenu(branch.id) }))),
+  ]);
 
   return (
     <>
@@ -22,7 +24,7 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
           <p className="mt-4 max-w-xl leading-relaxed text-cream-100/75">{t.menu.lede}</p>
         </div>
       </section>
-      <MenuBrowser menu={menu} branches={branches} selectedBranchId={selectedBranch?.id ?? null} />
+      <MenuBrowser menu={menu} branchMenus={branchMenus} />
     </>
   );
 }

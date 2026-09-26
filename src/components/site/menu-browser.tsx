@@ -34,9 +34,18 @@ const SECTION_PHOTOS: Partial<Record<MenuSection, { name: PhotoName; soft?: bool
   desserts: [{ name: "oreoCheesecakeReal" }, { name: "brownieReal" }, { name: "redVelvet", soft: true }],
 };
 
-export function MenuBrowser({ menu, branches, selectedBranchId }: { menu: MenuCategory[]; branches: Branch[]; selectedBranchId: string | null }) {
+type BranchMenuView = { branch: Branch; items: Map<string, MenuItem> };
+
+export function MenuBrowser({ menu, branchMenus }: { menu: MenuCategory[]; branchMenus: { branch: Branch; menu: MenuCategory[] }[] }) {
   const { locale, t } = useI18n();
   const [filter, setFilter] = useState<MenuTag | "all">("all");
+  const resolvedBranchMenus: BranchMenuView[] = useMemo(
+    () => branchMenus.map(({ branch, menu: branchMenu }) => ({
+      branch,
+      items: new Map(branchMenu.flatMap((category) => category.menu_items.map((item) => [item.id, item] as const))),
+    })),
+    [branchMenus],
+  );
 
   const grouped = useMemo(() => {
     const match = (i: MenuItem) => filter === "all" || i.tags.includes(filter);
@@ -52,21 +61,6 @@ export function MenuBrowser({ menu, branches, selectedBranchId }: { menu: MenuCa
   return (
     <div className="grain grain-dark bg-pine-700 text-cream-100">
       <div className="sticky top-20 z-30 bg-pine-900/95 backdrop-blur">
-        <nav aria-label={locale === "bn" ? "শাখা" : "Menu branch"} className="no-scrollbar mx-auto flex max-w-7xl gap-6 overflow-x-auto px-5 pt-3.5 sm:px-8 lg:px-12">
-          {branches.map((branch) => (
-            <Link
-              key={branch.id}
-              href={`/menu?branch=${encodeURIComponent(branch.slug)}`}
-              aria-current={branch.id === selectedBranchId ? "page" : undefined}
-              className={cn(
-                "shrink-0 border-b-2 pb-2 text-sm transition-colors",
-                branch.id === selectedBranchId ? "border-mustard-400 text-mustard-300" : "border-transparent text-cream-100/65 hover:text-cream-50",
-              )}
-            >
-              {locale === "bn" ? branch.name_bn : branch.name_en}
-            </Link>
-          ))}
-        </nav>
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-3.5 sm:px-8 md:flex-row md:items-center md:justify-between lg:px-12">
           <nav aria-label={t.nav.menu} className="no-scrollbar -mx-5 flex gap-7 overflow-x-auto px-5 md:mx-0 md:px-0">
             {grouped.map(({ section }) => (
@@ -107,7 +101,7 @@ export function MenuBrowser({ menu, branches, selectedBranchId }: { menu: MenuCa
                   <h3 className="script pl-1 text-4xl text-cream-100 lowercase sm:text-5xl">{pickClient(cat, "name", locale)}</h3>
                   <ul className="mt-4 space-y-4">
                     {cat.menu_items.map((item) => (
-                      <MenuRow key={item.id} item={item} />
+                      <MenuRow key={item.id} item={item} branchMenus={resolvedBranchMenus} />
                     ))}
                   </ul>
                 </div>
@@ -134,9 +128,24 @@ export function MenuBrowser({ menu, branches, selectedBranchId }: { menu: MenuCa
   );
 }
 
-function MenuRow({ item }: { item: MenuItem }) {
+function MenuRow({ item, branchMenus }: { item: MenuItem; branchMenus: BranchMenuView[] }) {
   const { locale, t } = useI18n();
   const description = pickClient(item, "description", locale);
+  const branchPrices = branchMenus.map(({ branch, items }) => {
+    const branchItem = items.get(item.id);
+    return {
+      branch,
+      price: Number(branchItem?.price ?? item.price),
+      available: branchItem?.is_available ?? item.is_available,
+    };
+  });
+  const pricesDiffer = new Set(branchPrices.map(({ price }) => price)).size > 1;
+  const unavailableBranches = branchPrices
+    .filter(({ available }) => !available)
+    .map(({ branch }) => locale === "bn" ? branch.name_bn : branch.name_en);
+  const unavailableEverywhere = branchPrices.length > 0
+    ? unavailableBranches.length === branchPrices.length
+    : !item.is_available;
   const options = item.menu_item_variants.length > 1
     ? item.menu_item_variants
         .map((v) => pickClient(v, "name", locale) + (Number(v.price_delta) > 0 ? ` +${formatPrice(Number(v.price_delta), locale)}` : ""))
@@ -144,13 +153,26 @@ function MenuRow({ item }: { item: MenuItem }) {
     : "";
   const addons = item.menu_item_addons.map((a) => `${pickClient(a, "name", locale)} +${formatPrice(Number(a.price), locale)}`).join(" / ");
   const tags = TAG_ORDER.filter((tag) => item.tags.includes(tag)).map((tag) => t.menu.tags[tag]);
+  const availabilityNote = unavailableBranches.length > 0
+    ? `${t.menu.unavailableAt} ${unavailableBranches.join(", ")}`
+    : branchPrices.length === 0 && !item.is_available
+      ? t.menu.unavailable
+      : null;
 
   return (
-    <li className={cn("grid grid-cols-[1fr_auto] items-baseline gap-x-3", !item.is_available && "opacity-45")}>
+    <li className={cn("grid grid-cols-[1fr_auto] items-baseline gap-x-3", unavailableEverywhere && "opacity-45")}>
       <span className="text-[0.95rem] font-semibold tracking-[0.03em] text-cream-100 uppercase">{pickClient(item, "name", locale)}</span>
-      <span className={cn("text-[0.95rem] font-semibold tabular-nums text-cream-100", !item.is_available && "line-through")}>
-        {formatPrice(item.price, locale)}
-      </span>
+      {pricesDiffer ? (
+        <span className="col-span-2 text-sm font-semibold tabular-nums text-cream-100">
+          {branchPrices.map(({ branch, price }, index) => (
+            <span key={branch.id}>{index > 0 ? " · " : null}{locale === "bn" ? branch.name_bn : branch.name_en}: {formatPrice(price, locale)}</span>
+          ))}
+        </span>
+      ) : (
+        <span className={cn("text-[0.95rem] font-semibold tabular-nums text-cream-100", unavailableEverywhere && "line-through")}>
+          {formatPrice(branchPrices[0]?.price ?? item.price, locale)}
+        </span>
+      )}
       {options ? <span className="col-span-2 text-[0.8rem] font-medium text-mustard-300 lowercase">({options})</span> : null}
       {description ? <span className="col-span-2 mt-0.5 text-sm leading-relaxed text-cream-100/65">{description}</span> : null}
       {addons ? (
@@ -158,9 +180,9 @@ function MenuRow({ item }: { item: MenuItem }) {
           {t.menu.addons}: {addons}
         </span>
       ) : null}
-      {tags.length || !item.is_available ? (
+      {tags.length || availabilityNote ? (
         <span className="label col-span-2 mt-1 !text-[0.62rem] text-mustard-400/80">
-          {[!item.is_available ? t.menu.unavailable : null, ...tags].filter(Boolean).join(" · ")}
+          {[availabilityNote, ...tags].filter(Boolean).join(" · ")}
         </span>
       ) : null}
     </li>

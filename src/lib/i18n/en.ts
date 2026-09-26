@@ -96,6 +96,7 @@ const en = {
     options: "Options",
     addons: "Add-ons",
     unavailable: "Unavailable today",
+    unavailableAt: "Unavailable at",
     empty: "No dishes match this filter.",
     preorderNote: "Have a confirmed reservation? Use the link in your email to pre-order.",
   },
