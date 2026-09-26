@@ -75,6 +75,7 @@
      copy's width, left to right, so the loop never shows a seam. The row sets its own
      animation-duration from the number of dishes; 60s is only the fallback. */
   --animate-roll-right: roll-right 60s linear infinite;
+  --animate-roll-left: roll-left 60s linear infinite;
 
   @keyframes flicker {
     0%, 100% { transform: scaleY(1) skewX(0deg); opacity: 0.95; }
@@ -98,6 +99,10 @@
   @keyframes roll-right {
     from { transform: translateX(-50%); }
     to { transform: translateX(0); }
+  }
+  @keyframes roll-left {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
   }
 }
 

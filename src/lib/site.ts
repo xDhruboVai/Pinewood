@@ -75,7 +75,7 @@ export const DISH_PHOTOS: Record<string, PhotoName> = {
   "american-mac-cheese": "macAndCheese",
   "pine-2": "pine2",
   "club-sandwich": "clubSandwich",
-  "seafood-platter": "seafoodPlatter",
+  "seafood-platter": "seafoodPlatterPost",
   "fish-cake": "fishCake",
   "mexican-chicken": "mexicanChicken",
   "grilled-cheesy-buffalo-chicken": "buffaloChickenSet",
@@ -83,12 +83,12 @@ export const DISH_PHOTOS: Record<string, PhotoName> = {
   "pine-5": "shashlikSet",
   brownie: "brownieReal",
   "oreo-cheesecake": "oreoCheesecakeReal",
-  cappuccino: "cappuccino",
+  cappuccino: "cappuccinoPost",
 };
 
 /**
  * Real photos in /public/images. Captions and alt text live in the dictionaries under `photos`.
- * The cappuccino and cake crops come from the printed menu; the rest were supplied by Pinewood.
+ * High-res food shots sourced directly from Pinewood's Facebook photography assets.
  */
 export const PHOTOS = {
   hero: { src: "/images/pine3-fish-steak.webp", width: 1500, height: 1000 },
@@ -120,20 +120,21 @@ export const PHOTOS = {
   oreoCheesecakeReal: { src: "/images/photos/oreo-cheesecake-real.webp", width: 1000, height: 1333 },
   artRoom: { src: "/images/photos/art-room.webp", width: 960, height: 540 },
   spaghetti: { src: "/images/photos/spaghetti.webp", width: 1000, height: 1013 },
+  // Cropped from Pinewood's lemonade post so none of its offer text (a 2022 Buy 1 Get 1) shows.
+  lemonade: { src: "/images/photos/lemonade.webp", width: 670, height: 838 },
   seafoodPlatter: { src: "/images/photos/seafood-platter.webp", width: 1080, height: 1080 },
   skewerPlate: { src: "/images/photos/skewer-plate.webp", width: 393, height: 393 },
-  // Added 25 September 2026 from Pinewood's own Facebook posts ("25-9-26 new media"). The food shots
-  // are cropped out of their designed posters, without the poster text.
+  // High-resolution photography re-extracted from Pinewood's Facebook master assets.
   flowerCorner: { src: "/images/photos/flower-corner.webp", width: 1600, height: 1200 },
-  fishCake: { src: "/images/photos/fish-cake.webp", width: 642, height: 780 },
-  mexicanChicken: { src: "/images/photos/mexican-chicken.webp", width: 654, height: 845 },
-  buffaloChickenSet: { src: "/images/photos/buffalo-chicken-set.webp", width: 699, height: 560 },
+  fishCake: { src: "/images/photos/fish-cake.webp", width: 644, height: 785 },
+  mexicanChicken: { src: "/images/photos/mexican-chicken.webp", width: 659, height: 855 },
+  buffaloChickenSet: { src: "/images/photos/buffalo-chicken-set.webp", width: 709, height: 570 },
   chickenCheeseBurger: { src: "/images/photos/chicken-cheese-burger.webp", width: 1014, height: 540 },
-  shashlikSet: { src: "/images/photos/shashlik-set.webp", width: 1060, height: 465 },
-  steakSet: { src: "/images/photos/steak-set.webp", width: 880, height: 595 },
-  alfredoBake: { src: "/images/photos/alfredo-bake.webp", width: 542, height: 735 },
-  seafoodPlatterPost: { src: "/images/photos/seafood-platter-post.webp", width: 856, height: 578 },
-  cappuccinoPost: { src: "/images/photos/cappuccino-post.webp", width: 554, height: 418 },
+  shashlikSet: { src: "/images/photos/shashlik-set.webp", width: 1080, height: 475 },
+  steakSet: { src: "/images/photos/steak-set.webp", width: 900, height: 610 },
+  alfredoBake: { src: "/images/photos/alfredo-bake.webp", width: 544, height: 735 },
+  seafoodPlatterPost: { src: "/images/photos/seafood-platter-post.webp", width: 859, height: 578 },
+  cappuccinoPost: { src: "/images/photos/cappuccino-post.webp", width: 564, height: 425 },
   cappuccino: { src: "/images/cappuccino.webp", width: 530, height: 470 },
   oreoCheesecake: { src: "/images/oreo-cheesecake.webp", width: 446, height: 236 },
   redVelvet: { src: "/images/red-velvet.webp", width: 431, height: 260 },

@@ -63,7 +63,7 @@ export default async function HomePage() {
       {/* 2. More of the food, set like the menu page */}
       {featured.length > 0 || photographed.length > 0 ? (
         <section className="overflow-hidden">
-          <Container className="grid gap-14 py-24 lg:grid-cols-12 lg:gap-16 lg:py-32">
+          <Container className="grid gap-14 py-24 lg:max-w-[88rem] lg:grid-cols-12 lg:gap-16 lg:py-32 xl:max-w-[100rem] 2xl:max-w-[110rem] 2xl:px-[4.5vw]">
             <Reveal className="lg:col-span-5">
               <ScriptTitle>{t.home.kitchenTitle}</ScriptTitle>
               <ul className="mt-8 space-y-5">
@@ -93,7 +93,7 @@ export default async function HomePage() {
 
       {/* 2b. From our tables: a photo wall of more food */}
       <section className="bg-surface">
-        <Container className="py-24 lg:py-32">
+        <Container className="py-24 lg:max-w-[88rem] lg:py-32 xl:max-w-[100rem] 2xl:max-w-[110rem] 2xl:px-[4.5vw]">
           <Reveal>
             <ScriptTitle>{t.home.tablesTitle}</ScriptTitle>
           </Reveal>
@@ -111,19 +111,19 @@ export default async function HomePage() {
           is filled by the place itself rather than one photo and empty green. Captions sit on the
           photos. On phones the collage is two columns under the text. */}
       <section className="bg-pine-100 evening:bg-pine-800">
-        <Container className="grid items-center gap-12 py-20 lg:grid-cols-12 lg:gap-14 lg:py-28">
+        <Container className="grid items-center gap-12 py-20 lg:max-w-[88rem] lg:grid-cols-12 lg:gap-14 lg:py-28 xl:max-w-[100rem] xl:gap-16 2xl:max-w-[110rem] 2xl:px-[4.5vw]">
           <Reveal className="lg:col-span-4">
             <p className="eyebrow">{t.home.insideEyebrow}</p>
-            <ScriptTitle className="mt-2">{t.home.insideTitle}</ScriptTitle>
-            <p className="mt-6 max-w-sm leading-relaxed text-ink-muted">{t.about.roomsBody}</p>
+            <ScriptTitle className="mt-2 text-4xl sm:text-5xl lg:text-[3.25rem]">{t.home.insideTitle}</ScriptTitle>
+            <p className="mt-6 max-w-md text-base leading-relaxed text-ink-muted xl:text-lg">{t.about.roomsBody}</p>
             <QuietLink href="/about#rooms" className="mt-7">
               {t.home.insideCta}
             </QuietLink>
           </Reveal>
-          <div className="grid auto-rows-[8.5rem] grid-cols-2 gap-3 sm:auto-rows-[clamp(8rem,12vw,12.5rem)] sm:grid-cols-6 sm:gap-4 lg:col-span-8">
+          <div className="grid auto-rows-[8.5rem] grid-cols-2 gap-3 sm:auto-rows-[clamp(8.5rem,11.5vw,13.5rem)] sm:grid-cols-6 sm:gap-4 lg:col-span-8 xl:auto-rows-[clamp(11rem,12.5vw,16rem)] xl:gap-5">
             {ROOMS.map(({ name, tile, position }, i) => (
               <Reveal as="figure" key={name} delay={i * 70} className={cn("relative", tile)}>
-                <Photo name={name} alt={t.photos[name].alt} sizes={i === 0 ? "(min-width: 1024px) 45vw, 100vw" : "(min-width: 1024px) 22vw, 50vw"} position={position} className="h-full" />
+                <Photo name={name} alt={t.photos[name].alt} sizes={i === 0 ? "(min-width: 1024px) 50vw, 100vw" : "(min-width: 1024px) 25vw, 50vw"} position={position} className="h-full" />
                 <figcaption className="pointer-events-none absolute bottom-2.5 left-2.5 rounded-[2px] bg-pine-900/75 px-2 py-1 text-[0.72rem] font-medium text-cream-50 sm:bottom-3 sm:left-3 sm:text-xs">
                   {t.photos[name].caption}
                 </figcaption>
@@ -135,31 +135,35 @@ export default async function HomePage() {
 
       {/* 4. What guests say */}
       <section>
-        <Container className="py-24 lg:py-32">
-          <Reveal className="grid gap-8 lg:grid-cols-12 lg:gap-16">
-            <ScriptTitle className="lg:col-span-4 lg:pt-3">{t.home.reviewsTitle}</ScriptTitle>
-            <figure className="lg:col-span-8">
-              <blockquote lang="en" className="display text-3xl leading-snug text-ink sm:text-4xl lg:text-[2.75rem]">
+        <Container className="py-24 lg:max-w-[88rem] lg:py-32 xl:max-w-[100rem] 2xl:max-w-[110rem] 2xl:px-[4.5vw]">
+          <Reveal className="text-center">
+            <ScriptTitle className="text-center pl-0 text-4xl sm:text-5xl lg:text-[3.25rem]">{t.home.reviewsTitle}</ScriptTitle>
+          </Reveal>
+          <Reveal className="mt-8 sm:mt-10 mx-auto max-w-4xl text-center">
+            <figure>
+              <blockquote lang="en" className="display text-3xl leading-snug text-ink sm:text-4xl lg:text-[2.75rem] xl:text-[3rem]">
                 “{lead.body}”
               </blockquote>
-              <figcaption className="mt-6 text-ink-muted">
+              <figcaption className="mt-4 text-ink-muted">
                 {lead.author} · {t.home.reviewSource}
               </figcaption>
             </figure>
           </Reveal>
-          <div className="mt-20 grid gap-8 lg:grid-cols-12 lg:gap-16">
-            <div className="gap-x-14 sm:columns-2 lg:col-span-8 lg:col-start-5">
+          <div className="mt-8 sm:mt-10 lg:mt-12 mx-auto max-w-5xl">
+            <div className="gap-x-12 sm:columns-2 lg:gap-x-16">
               {otherReviews.map((r, i) => (
-                <Reveal as="figure" key={r.author} delay={(i % 2) * 120} className="mb-12 break-inside-avoid">
-                  <blockquote lang="en" className="font-display text-xl leading-snug text-ink">
+                <Reveal as="figure" key={r.author} delay={(i % 2) * 120} className="mb-8 sm:mb-10 break-inside-avoid">
+                  <blockquote lang="en" className="font-display font-bold text-xl leading-snug text-ink sm:text-[1.35rem]">
                     “{r.body}”
                   </blockquote>
-                  <figcaption className="mt-3 text-sm text-ink-muted">{r.author}</figcaption>
+                  <figcaption className="mt-2 text-sm font-semibold text-ink-muted">{r.author}</figcaption>
                 </Reveal>
               ))}
-              <QuietLink href={mapsSearchUrl(SITE.mapQuery)} external>
-                {t.home.reviewsCta}
-              </QuietLink>
+              <div className="break-inside-avoid pt-2">
+                <QuietLink href={mapsSearchUrl(SITE.mapQuery)} external className="font-semibold">
+                  {t.home.reviewsCta}
+                </QuietLink>
+              </div>
             </div>
           </div>
         </Container>
@@ -170,10 +174,10 @@ export default async function HomePage() {
         <div className="relative -z-10 aspect-[4/3] [clip-path:polygon(0_0,100%_0,100%_78%,0_100%)] sm:aspect-[16/9] lg:absolute lg:inset-y-0 lg:right-0 lg:aspect-auto lg:w-[50%] lg:[clip-path:polygon(24%_0,100%_0,100%_100%,0_100%)]">
           <Image src={PHOTOS.brickRoom.src} alt={t.photos.brickRoom.alt} fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" />
         </div>
-        <Container className="py-24 lg:py-32">
-          <Reveal className="lg:max-w-[42%]">
-            <h2 className="display text-4xl text-cream-50 sm:text-5xl">{t.home.howTitle}</h2>
-            <p className="mt-6 max-w-md leading-relaxed text-cream-100/75">{t.home.howBody}</p>
+        <Container className="py-24 lg:max-w-[88rem] lg:py-32 xl:max-w-[100rem] 2xl:max-w-[110rem] 2xl:px-[4.5vw]">
+          <Reveal className="lg:max-w-[48%] xl:max-w-[45%]">
+            <h2 className="display text-4xl text-cream-50 sm:text-5xl lg:text-6xl">{t.home.howTitle}</h2>
+            <p className="mt-6 max-w-md text-base leading-relaxed text-cream-100/80 xl:text-lg">{t.home.howBody}</p>
             <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
               <Button asChild size="lg" variant="mustard">
                 <Link href="/reserve">{t.nav.reserve}</Link>

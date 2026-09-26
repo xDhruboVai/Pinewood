@@ -47,16 +47,18 @@ export function Header() {
           larger type. Other pages keep it in line with their content. */}
       <div
         className={cn(
-          "mx-auto flex h-20 max-w-7xl items-center justify-between gap-6 px-5 sm:px-8 lg:px-12",
-          pathname === "/" && "2xl:h-24 2xl:max-w-[110rem] 2xl:px-[4.5vw]",
+          "mx-auto flex h-20 w-full max-w-7xl items-center justify-between gap-6 px-5 sm:px-8 lg:max-w-[88rem] lg:px-12 xl:max-w-[100rem] 2xl:max-w-[110rem] 2xl:px-[4.5vw]",
+          pathname === "/" && "2xl:h-24",
         )}
       >
-        <Link href="/" aria-label={t.nav.home} className="flex shrink-0 items-center">
-          <Logo tone="light" priority className={pathname === "/" ? "2xl:[&_img]:h-[4.5rem]" : undefined} />
-        </Link>
+        <div className="flex flex-1 items-center justify-start">
+          <Link href="/" aria-label={t.nav.home} className="flex shrink-0 items-center">
+            <Logo tone="light" priority className={pathname === "/" ? "2xl:[&_img]:h-[4.5rem]" : undefined} />
+          </Link>
+        </div>
 
         {/* Tighter between 768 and 1023px so the links and the Reserve button fit on one line. */}
-        <nav aria-label="Primary" className="hidden items-center gap-5 md:flex lg:gap-12">
+        <nav aria-label="Primary" className="hidden items-center justify-center gap-6 md:flex lg:gap-10 xl:gap-12">
           {[{ href: "/", label: t.nav.home }, ...links].map((l) => (
             <Link
               key={l.href}
@@ -69,7 +71,7 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-5 md:flex lg:gap-6">
+        <div className="hidden flex-1 items-center justify-end gap-5 md:flex lg:gap-6">
           <LocaleToggle />
           <Button asChild variant="mustard" className="font-nav h-12 px-5 text-[0.8rem] tracking-[0.16em] lg:px-7">
             <Link href="/reserve">{t.nav.reserve}</Link>

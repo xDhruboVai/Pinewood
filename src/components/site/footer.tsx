@@ -25,8 +25,9 @@ export async function Footer() {
 
   return (
     <footer className="grain grain-dark bg-pine-900 text-cream-100">
-      <div className="mx-auto grid max-w-7xl gap-12 px-5 py-16 sm:grid-cols-2 sm:px-8 lg:grid-cols-[1.4fr_1fr_1fr_1.4fr] lg:px-12">
-        <div>
+      {/* Phones: the logo on its own row, then the four lists two by two, so the footer isn't one long column. */}
+      <div className="mx-auto grid w-full max-w-7xl grid-cols-2 gap-x-6 gap-y-10 px-5 py-14 sm:gap-12 sm:px-8 sm:py-16 lg:max-w-[88rem] lg:grid-cols-[1.4fr_1fr_1fr_1.4fr] lg:px-12 xl:max-w-[100rem] 2xl:max-w-[110rem] 2xl:px-[4.5vw]">
+        <div className="col-span-2 sm:col-span-1">
           <LogoStacked className="h-28" />
           <p className="script mt-5 text-3xl text-mustard-400 lowercase">{t.footer.since}</p>
           <p className="mt-2 max-w-xs text-sm leading-relaxed text-cream-100/70">{t.footer.tagline}</p>
@@ -93,7 +94,7 @@ export async function Footer() {
         </div>
       </div>
       <div className="border-t border-cream-100/10">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-6 text-xs text-cream-100/55 sm:px-8 lg:px-12">
+        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-6 text-xs text-cream-100/55 sm:px-8 lg:max-w-[88rem] lg:px-12 xl:max-w-[100rem] 2xl:max-w-[110rem] 2xl:px-[4.5vw]">
           <p>
             © {year} Pinewood Cafe + Kitchen. {t.footer.rights}
           </p>
