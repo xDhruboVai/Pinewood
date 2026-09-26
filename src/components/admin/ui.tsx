@@ -19,7 +19,7 @@ export function PageHeader({
 }) {
   return (
     <section>
-      <div className="mx-auto flex max-w-7xl flex-wrap items-end justify-between gap-x-8 gap-y-4 px-5 pt-7 sm:px-8 sm:pt-9 lg:px-12">
+      <div className="mx-auto flex max-w-[90rem] flex-wrap items-end justify-between gap-x-8 gap-y-4 px-5 pt-7 sm:px-8 sm:pt-9 lg:px-12">
         <div className="max-w-3xl">
           <p className="eyebrow">{kicker ?? "Pinewood staff"}</p>
           <h1 className="display mt-1 text-[2.25rem] text-ink sm:text-[2.625rem]">{title}</h1>
@@ -31,9 +31,9 @@ export function PageHeader({
   );
 }
 
-/** The page's content area: the site's container width and padding, below the `PageHeader`. */
+/** The page's content area, below the `PageHeader`: a little wider than the public site (90rem), like the staff navigation, so the reservation register has room for its columns. */
 export function AdminBody({ children }: { children: React.ReactNode }) {
-  return <div className="mx-auto w-full max-w-7xl px-5 pt-7 pb-16 sm:px-8 sm:pt-8 lg:px-12">{children}</div>;
+  return <div className="mx-auto w-full max-w-[90rem] px-5 pt-7 pb-16 sm:px-8 sm:pt-8 lg:px-12">{children}</div>;
 }
 
 type Tone = "mustard" | "pine" | "wood" | "muted" | "danger";

@@ -51,7 +51,7 @@ const en = {
     howBody: "Pick a date, a time and how many people. We'll call to confirm, and your confirmation email has a link to order your food before you arrive.",
     tablesTitle: "From our tables",
     findUs: "Find us",
-    dishesHint: "Drag or swipe for more",
+    dishesHint: "Tap a dish to see it on the menu.",
     dishCta: "See on the menu",
     outletsEyebrow: "Outlets",
     outletsTitle: "Looking for a Pinewood near you?",
