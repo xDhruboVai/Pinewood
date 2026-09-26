@@ -1,8 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Container } from "@/components/site/section";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export interface HeroSlideView {
@@ -27,7 +29,7 @@ export function HeroCarousel({
   fontClassName,
 }: {
   slides: HeroSlideView[];
-  labels: { title: string; accent: string; eyebrow: string; note: string };
+  labels: { title: string; accent: string; eyebrow: string; note: string; reserve: string; menu: string };
   bn: boolean;
   /** Defines the hero fonts' CSS variables (next/font classes from home-hero.tsx). */
   fontClassName?: string;
@@ -169,8 +171,10 @@ export function HeroCarousel({
     >
       <h1 className="sr-only">{labels.title}</h1>
 
-      {/* Photos: full height, starting a third of the way in and melting into the green on the left */}
-      <div className="absolute inset-x-0 top-0 -z-10 h-[58%] overflow-hidden sm:h-[62%] lg:inset-y-0 lg:right-0 lg:left-[28%] lg:h-auto">
+      {/* Photos: on desktop they start 28% of the way in and melt into the green on the left. Not full
+          width on purpose: the dish photos are 1080-1500px wide, and stretching them across a whole
+          1920px screen made them visibly soft. */}
+      <div className="absolute inset-x-0 top-0 -z-10 h-[60%] overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)] sm:h-[64%] lg:inset-y-0 lg:right-0 lg:left-[28%] lg:h-auto lg:[mask-image:none]">
         {slides.map((s, i) => (
           <div
             key={s.key}
@@ -185,38 +189,40 @@ export function HeroCarousel({
                 fill
                 priority={i === 0}
                 draggable={false}
-                sizes="(min-width: 1024px) 75vw, 100vw"
+                sizes="(min-width: 1024px) 72vw, 100vw"
                 quality={85}
                 style={{ objectPosition: s.position }}
                 className={cn(
-                  "pointer-events-none object-cover brightness-[0.85] transition-transform duration-[2400ms] ease-[var(--ease-soft)] motion-reduce:transition-none",
-                  i === index && drag === null ? "scale-100" : "scale-[1.04]",
+                  "pointer-events-none object-cover brightness-[0.88] transition-transform duration-[2400ms] ease-[var(--ease-soft)] motion-reduce:transition-none",
+                  i === index && drag === null ? "scale-100" : "scale-[1.02]",
                 )}
               />
             ) : null}
           </div>
         ))}
       </div>
-      {/* Shade: dark green on the left and along the bottom (text side), soft at the top under the menu */}
-      <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-t from-pine-800 via-pine-800 via-45% to-transparent to-65% lg:hidden" />
+      {/* Shade. Phones and tablets: the photo fades out at its foot (the mask above) and the green rises
+          behind the text, so photo and text read as one picture with no hard edge. Desktop: a soft
+          gradient from the left. */}
+      <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-t from-pine-800 via-pine-800 via-40% to-transparent to-70% lg:hidden" />
       <div
         aria-hidden
-        className="absolute inset-0 -z-10 hidden lg:block lg:bg-[linear-gradient(to_right,var(--color-pine-800)_28%,rgb(26_62_65/0.85)_38%,rgb(26_62_65/0.35)_52%,transparent_68%)]"
+        className="absolute inset-0 -z-10 hidden lg:block bg-[linear-gradient(to_right,rgba(19,47,50,1)_28%,rgba(19,47,50,0.85)_36%,rgba(19,47,50,0.45)_48%,rgba(19,47,50,0.12)_62%,transparent_75%)]"
       />
-      <div aria-hidden className="absolute inset-x-0 top-0 -z-10 h-40 bg-gradient-to-b from-pine-800/80 to-transparent" />
-      <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_90%_80%_at_70%_50%,transparent_55%,rgb(19_47_50/0.55)_100%)]" />
+      <div aria-hidden className="absolute inset-x-0 top-0 -z-10 h-36 bg-gradient-to-b from-pine-900/80 to-transparent" />
+      <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_90%_80%_at_70%_50%,transparent_55%,rgb(19_47_50/0.4)_100%)]" />
 
-      {/* Wider than the site's usual column from 1536px, lined up with the header (header.tsx). */}
-      <Container className="relative flex min-h-[100svh] flex-col pt-32 pb-10 lg:min-h-[max(100svh,44rem)] lg:pt-36 2xl:max-w-[110rem] 2xl:px-[4.5vw]">
-        {/* From 1280px the text grows with the screen, so a large monitor isn't mostly empty green. */}
-        <div className="mt-auto max-w-xl lg:my-auto xl:max-w-2xl">
-          <p className={cn("hand animate-rise text-5xl text-mustard-400 sm:text-6xl xl:text-7xl 2xl:text-8xl", !bn && "origin-left -rotate-6")}>{labels.accent}</p>
+      {/* 16:9 cinematic framing: comfortable height, generous desktop spacing */}
+      <Container className="relative flex min-h-[100svh] flex-col justify-between pt-28 pb-8 sm:pt-32 sm:pb-10 lg:min-h-[min(100svh,52rem)] lg:pt-32 lg:pb-10 2xl:max-w-[110rem] 2xl:px-[4.5vw]">
+        {/* Editorial text block occupying roughly the left 35-40% */}
+        <div className="mt-auto max-w-md lg:my-auto lg:max-w-lg xl:max-w-xl">
+          <p className={cn("hand animate-rise text-4xl text-mustard-400 sm:text-5xl lg:text-[3.25rem] xl:text-[3.75rem]", !bn && "origin-left -rotate-6")}>{labels.accent}</p>
 
           {/* Changing text. All slides share one grid cell so the layout doesn't jump; the active one is
               re-keyed each time it becomes active so it animates in from the swipe direction, and follows
               the pointer while dragging. */}
           <div
-            className={cn("mt-3 grid", drag === null && "transition-[transform,opacity] duration-500 ease-[var(--ease-soft)]")}
+            className={cn("mt-2.5 grid", drag === null && "transition-[transform,opacity] duration-500 ease-[var(--ease-soft)]")}
             style={{
               "--dir": dir,
               transform: drag === null ? undefined : `translateX(${drag * 0.45}px)`,
@@ -243,9 +249,9 @@ export function HeroCarousel({
                       "hero-serif text-cream-50",
                       active && "hero-in",
                       long
-                        ? "text-[3.25rem] sm:text-[4.5rem] lg:text-[5.25rem] xl:text-[5.75rem] 2xl:text-[6.25rem]"
-                        : "text-[4rem] sm:text-[5.75rem] lg:text-[6.75rem] xl:text-[8rem] 2xl:text-[9.5rem]",
-                      bn ? "leading-[1.2]" : "leading-[0.95]",
+                        ? "text-3xl sm:text-4xl lg:text-[3.25rem] xl:text-[3.75rem] 2xl:text-[4.5rem]"
+                        : "text-4xl sm:text-5xl lg:text-[4.25rem] xl:text-[5rem] 2xl:text-[5.75rem]",
+                      bn ? "leading-[1.2]" : "leading-[1.02]",
                     )}
                   >
                     {s.name}
@@ -253,7 +259,7 @@ export function HeroCarousel({
                   {s.description ? (
                     <p
                       className={cn(
-                        "mt-5 max-w-[22rem] text-base leading-[1.7] text-pretty text-cream-100/75 sm:text-[1.0625rem] xl:mt-7 xl:max-w-[28rem] xl:text-xl 2xl:max-w-[32rem] 2xl:text-[1.375rem] [--d:90ms]",
+                        "mt-4 max-w-[20rem] text-sm leading-[1.65] text-pretty text-cream-100/80 sm:text-base sm:max-w-[24rem] xl:mt-5 xl:max-w-[28rem] xl:text-[1.0625rem] [--d:90ms]",
                         active && "hero-in",
                       )}
                     >
@@ -261,8 +267,8 @@ export function HeroCarousel({
                     </p>
                   ) : null}
                   {s.price ? (
-                    <p className={cn("mt-8 xl:mt-10 [--d:180ms]", active && "hero-in")}>
-                      <span className="hero-serif text-[2.75rem] leading-none text-mustard-400 tabular-nums sm:text-5xl xl:text-6xl 2xl:text-7xl">
+                    <p className={cn("mt-6 xl:mt-7 [--d:180ms]", active && "hero-in")}>
+                      <span className="hero-serif text-3xl leading-none text-mustard-400 tabular-nums sm:text-4xl lg:text-[2.75rem] xl:text-5xl">
                         {currency ? <span className="mr-1 text-[0.75em] font-medium">{currency}</span> : null}
                         {amount}
                         <span className="ml-0.5 text-[0.6em] font-normal text-mustard-400/70">/-</span>
@@ -273,26 +279,39 @@ export function HeroCarousel({
               );
             })}
           </div>
+
+          {/* Phones and small tablets only: booking straight from the first screen, without opening the
+              menu first. From 768px the header has its own Reserve button. */}
+          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 md:hidden">
+            <Button asChild variant="mustard" className="font-nav h-12 px-6 text-[0.78rem] tracking-[0.16em]">
+              <Link href="/reserve">{labels.reserve}</Link>
+            </Button>
+            <Link href="/menu" className="font-nav text-[0.78rem] font-medium tracking-[0.16em] text-cream-100/85 uppercase underline-offset-4 hover:text-cream-50 hover:underline">
+              {labels.menu}
+            </Link>
+          </div>
         </div>
 
         {/* Bottom rule: menu section | place, in wide-spaced capitals */}
-        <div className="mt-12 flex max-w-xl items-center gap-6 border-t border-cream-100/45 pt-5 lg:mt-0 xl:max-w-2xl">
+        <div className="mt-8 flex max-w-md items-center gap-5 border-t border-cream-100/35 pt-4 lg:mt-0 lg:max-w-lg xl:max-w-xl">
           {slides[index].section ? (
             <>
-              <span key={slides[index].key} className="font-nav hero-in shrink-0 text-[0.75rem] font-semibold tracking-[0.2em] text-cream-50 uppercase">
+              <span key={slides[index].key} className="font-nav hero-in shrink-0 text-[0.72rem] font-semibold tracking-[0.2em] text-cream-50 uppercase">
                 {slides[index].section}
               </span>
-              <span aria-hidden className="h-6 w-px shrink-0 bg-cream-100/45" />
+              <span aria-hidden className="hidden h-5 w-px shrink-0 bg-cream-100/35 sm:block" />
             </>
           ) : null}
-          <span className="font-nav truncate text-[0.7rem] font-medium tracking-[0.42em] text-cream-100/85 uppercase">{labels.eyebrow}</span>
+          {/* On phones there's only room for one of the two; the dish's menu section wins, rather than
+              cutting "Café & restaurant" off half-way. */}
+          <span className={cn("font-nav truncate text-[0.68rem] font-medium tracking-[0.38em] text-cream-100/80 uppercase", slides[index].section && "hidden sm:inline")}>{labels.eyebrow}</span>
         </div>
       </Container>
 
       {/* Handwritten note, bottom right */}
-      <div className="pointer-events-none absolute right-[4%] bottom-8 hidden -rotate-12 text-mustard-400 drop-shadow-[0_1px_8px_rgb(19_47_50/0.6)] sm:block">
-        <p className="hand text-4xl lg:text-5xl">{labels.note}</p>
-        <svg aria-hidden viewBox="0 0 120 12" className="mt-1 ml-auto h-3 w-24" fill="none">
+      <div className="pointer-events-none absolute right-[5%] bottom-8 hidden -rotate-12 text-mustard-400 drop-shadow-[0_1px_8px_rgb(19_47_50/0.6)] sm:block lg:bottom-10 lg:right-[6%]">
+        <p className="hand text-3xl lg:text-4xl">{labels.note}</p>
+        <svg aria-hidden viewBox="0 0 120 12" className="mt-0.5 ml-auto h-2.5 w-20" fill="none">
           <path d="M2 9 C 40 3, 80 2, 118 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
       </div>

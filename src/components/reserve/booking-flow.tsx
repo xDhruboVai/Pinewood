@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { Check, Home, MapPin, TreePalm } from "lucide-react";
 import { toast } from "sonner";
 import { holdSlot, submitReservation } from "@/actions/reservation";
 import { Button } from "@/components/ui/button";
 import { QuietLink } from "@/components/site/section";
+import { PineGlyph } from "@/components/site/logo";
 import { Field, Input, Label, Textarea } from "@/components/ui/form";
 import { DatePicker } from "./date-picker";
 import { TimePicker } from "./time-picker";
@@ -326,46 +328,104 @@ export function BookingFlow({ areas, branches }: { areas: Area[]; branches: Bran
       {/* 2. Branch */}
       {outlets.length > 1 ? (
         <Step n={2} title={t.reserve.outlet}>
-          <Choice
-            label={t.reserve.outlet}
-            value={outletSlug}
-            onChange={setOutletSlug}
-            options={outlets.map((o) => ({ value: o.slug, title: o.name[locale], hint: o.address[locale] }))}
-          />
+          <div role="radiogroup" aria-label={t.reserve.outlet} onKeyDown={radioKeys} className="flex flex-col gap-0 sm:flex-row sm:gap-0">
+            {outlets.map((o, i) => {
+              const on = o.slug === outletSlug;
+              return (
+                <button
+                  key={o.slug}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  tabIndex={on ? 0 : -1}
+                  onClick={() => setOutletSlug(o.slug)}
+                  className={cn(
+                    "group relative flex w-full items-start gap-3.5 px-4 py-4 text-left transition-colors sm:flex-1",
+                    on
+                      ? "rounded-sm bg-primary text-primary-ink"
+                      : "bg-transparent text-ink hover:bg-surface",
+                    /* divider between unselected siblings on desktop */
+                    !on && i > 0 && "sm:border-l sm:border-line",
+                    /* divider between items on mobile */
+                    !on && i > 0 && "border-t border-line sm:border-t-0",
+                  )}
+                >
+                  <MapPin className={cn("mt-0.5 size-[1.1rem] shrink-0", on ? "text-primary-ink/80" : "text-ink-muted")} strokeWidth={1.5} />
+                  <div className="min-w-0 flex-1">
+                    <span className={cn("block text-[0.9rem] font-semibold leading-snug", on ? "text-primary-ink" : "text-ink")}>{o.name[locale]}</span>
+                    <span className={cn("mt-0.5 block text-[0.78rem] leading-snug", on ? "text-primary-ink/70" : "text-ink-muted")}>{o.address[locale]}</span>
+                  </div>
+                  {on ? <Check className="mt-0.5 size-4 shrink-0 text-primary-ink/80" strokeWidth={2} /> : null}
+                </button>
+              );
+            })}
+          </div>
         </Step>
       ) : null}
 
       {/* 3. Inside or outside */}
       <Step n={n(3)} title={t.reserve.seating}>
-        <Choice
-          label={t.reserve.seating}
-          value={seating}
-          onChange={(v) => setSeating(v as Seating)}
-          options={[
-            { value: "inside", title: t.reserve.inside, hint: t.reserve.insideHint },
-            { value: "outside", title: t.reserve.outside, hint: t.reserve.outsideHint },
-          ]}
-        />
+        <div role="radiogroup" aria-label={t.reserve.seating} onKeyDown={radioKeys} className="grid gap-3 sm:grid-cols-2">
+          {([
+            { value: "inside" as const, title: t.reserve.inside, hint: t.reserve.insideHint, Icon: Home },
+            { value: "outside" as const, title: t.reserve.outside, hint: t.reserve.outsideHint, Icon: TreePalm },
+          ] as const).map((o) => {
+            const on = o.value === seating;
+            return (
+              <button
+                key={o.value}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                tabIndex={on ? 0 : -1}
+                onClick={() => setSeating(o.value)}
+                className={cn(
+                  "flex items-center gap-3.5 rounded-sm border px-4 py-3.5 text-left transition-colors",
+                  on
+                    ? "border-primary bg-primary/[0.06] text-ink"
+                    : "border-line bg-transparent text-ink hover:border-ink/30",
+                )}
+              >
+                <o.Icon className={cn("size-5 shrink-0", on ? "text-primary" : "text-ink-muted")} strokeWidth={1.5} />
+                <div className="min-w-0 flex-1">
+                  <span className={cn("block text-[0.9rem] font-semibold leading-snug", on ? "text-ink" : "text-ink")}>{o.title}</span>
+                  <span className="mt-0.5 block text-[0.78rem] leading-snug text-ink-muted">{o.hint}</span>
+                </div>
+                {on ? (
+                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary">
+                    <Check className="size-3 text-primary-ink" strokeWidth={2.5} />
+                  </span>
+                ) : (
+                  <span className="size-5 shrink-0 rounded-full border border-line" />
+                )}
+              </button>
+            );
+          })}
+        </div>
       </Step>
 
       {/* 4. Number of people */}
       <Step n={n(4)} title={t.reserve.partySize} hint={t.reserve.largePartyCall}>
-        <div role="radiogroup" aria-label={t.reserve.partySize} onKeyDown={radioKeys} className="grid grid-cols-5 gap-2 sm:grid-cols-10">
+        <div role="radiogroup" aria-label={t.reserve.partySize} onKeyDown={radioKeys} className="flex flex-wrap items-center gap-2">
           {Array.from({ length: SITE.booking.maxOnlineParty }, (_, i) => i + 1).map((count) => (
-            <button
-              key={count}
-              type="button"
-              role="radio"
-              aria-checked={party === count}
-              tabIndex={party === count ? 0 : -1}
-              onClick={() => setParty(count)}
-              className={cn(
-                "h-12 rounded-sm border text-[0.95rem] font-medium tabular-nums transition-colors",
-                party === count ? "border-primary bg-primary text-primary-ink" : "border-line bg-surface text-ink hover:border-ink/35",
-              )}
-            >
-              {formatNumber(count, locale)}
-            </button>
+            <span key={count} className="flex items-center gap-2">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={party === count}
+                tabIndex={party === count ? 0 : -1}
+                onClick={() => setParty(count)}
+                className={cn(
+                  "flex size-10 items-center justify-center rounded-full text-[0.88rem] font-medium tabular-nums transition-colors",
+                  party === count
+                    ? "bg-primary text-primary-ink"
+                    : "border border-line bg-transparent text-ink hover:border-ink/40",
+                )}
+              >
+                {formatNumber(count, locale)}
+              </button>
+              {count === 1 ? <span className="text-ink-muted/50" aria-hidden>·</span> : null}
+            </span>
           ))}
         </div>
       </Step>
@@ -480,57 +540,33 @@ export function BookingFlow({ areas, branches }: { areas: Area[]; branches: Bran
 
 /**
  * One step of the form, laid out like the menu: a small serif number and the step name (in the
- * menu's dish-name style) on the left, the controls on the right, a thin line between steps.
+ * menu's dish-name style) on the left, the controls on the right, separated by a centered Pinewood
+ * tree glyph divider.
  */
 function Step({ n, title, hint, first, children }: { n: number; title: string; hint?: string; first?: boolean; children: React.ReactNode }) {
   return (
-    <section className={cn("grid gap-x-12 gap-y-5 py-10 lg:grid-cols-12", first ? "pt-0" : "border-t border-line")}>
-      <div className="lg:col-span-4">
-        <p aria-hidden className="label text-accent-ink tabular-nums">
-          {String(n).padStart(2, "0")}
-        </p>
-        <h2 className="mt-2 text-[0.95rem] font-semibold tracking-[0.03em] text-ink uppercase">{title}</h2>
-        {hint ? <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-ink-muted">{hint}</p> : null}
-      </div>
-      <div className="lg:col-span-8">{children}</div>
-    </section>
-  );
-}
-
-/** Equal tiles for a single choice (branch, inside or outside); the chosen one is filled teal. */
-function Choice({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; title: string; hint?: string }[];
-}) {
-  return (
-    <div role="radiogroup" aria-label={label} onKeyDown={radioKeys} className="grid gap-3 sm:grid-cols-3">
-      {options.map((o) => {
-        const on = o.value === value;
-        return (
-          <button
-            key={o.value}
-            type="button"
-            role="radio"
-            aria-checked={on}
-            tabIndex={on ? 0 : -1}
-            onClick={() => onChange(o.value)}
-            className={cn(
-              "flex min-h-[4.75rem] flex-col justify-center rounded-sm border px-4 py-3 text-left transition-colors",
-              on ? "border-primary bg-primary text-primary-ink" : "border-line bg-surface text-ink hover:border-ink/35",
-            )}
-          >
-            <span className="text-[0.85rem] font-semibold tracking-[0.03em] uppercase">{o.title}</span>
-            {o.hint ? <span className={cn("mt-1 text-[0.8rem] leading-snug", on ? "text-primary-ink/75" : "text-ink-muted")}>{o.hint}</span> : null}
-          </button>
-        );
-      })}
-    </div>
+    <>
+      {!first ? (
+        <div className="grid lg:grid-cols-12" aria-hidden>
+          <div className="flex items-center justify-center gap-3 py-5 sm:gap-4 sm:py-6 lg:col-span-8 lg:col-start-5">
+            <div className="h-px flex-1 max-w-[8rem] sm:max-w-[14rem] bg-gradient-to-r from-transparent to-line" />
+            <div className="flex size-7 items-center justify-center rounded-full bg-pine-900/5 evening:bg-cream-100/10">
+              <PineGlyph className="h-3.5 w-auto opacity-75 evening:opacity-90" />
+            </div>
+            <div className="h-px flex-1 max-w-[8rem] sm:max-w-[14rem] bg-gradient-to-l from-transparent to-line" />
+          </div>
+        </div>
+      ) : null}
+      <section className={cn("grid gap-x-12 gap-y-5 py-5 lg:grid-cols-12", first && "pt-0")}>
+        <div className="lg:col-span-4">
+          <p aria-hidden className="label text-accent-ink tabular-nums">
+            {String(n).padStart(2, "0")}
+          </p>
+          <h2 className="mt-2 text-[0.95rem] font-semibold tracking-[0.03em] text-ink uppercase">{title}</h2>
+          {hint ? <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-ink-muted">{hint}</p> : null}
+        </div>
+        <div className="lg:col-span-8">{children}</div>
+      </section>
+    </>
   );
 }

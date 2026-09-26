@@ -75,7 +75,8 @@ const en = {
   menu: {
     eyebrow: "Menu",
     title: "Our Menu",
-    lede: "Prices are in Bangladeshi Taka. Please tell us about any allergies.",
+    // Only the page description for search engines and link previews; not shown on the page.
+    lede: "Starters, set menus, pasta, burgers, coffee, desserts and drinks at Pinewood Cafe + Kitchen.",
     filterLabel: "Filter",
     filterAll: "All",
     sections: {
@@ -133,7 +134,8 @@ const en = {
     pine2: { caption: "Pine 2", alt: "Pine 2: fried rice, beef chilli, Thai vegetables and prawn tempura" },
     oreoCheesecakeReal: { caption: "Oreo Cheesecake", alt: "A slice of Oreo cheesecake with an Oreo and cream on top" },
     artRoom: { caption: "Dining room", alt: "Wooden tables and benches under three framed paintings" },
-    spaghetti: { caption: "", alt: "Spaghetti with a minced meat sauce and a basil leaf" },
+    spaghetti: { caption: "Spaghetti Bolognese", alt: "Spaghetti with a minced meat sauce and a basil leaf" },
+    lemonade: { caption: "Fresh lemonade", alt: "A tall glass of cold lemonade with a lime slice, on crushed ice" },
     seafoodPlatter: { caption: "Seafood Platter", alt: "Seafood Platter: grilled prawns, fried squid rings, fried fish, fish balls, salad, garlic mayo and tomato salsa, with rice on the side" },
     skewerPlate: { caption: "", alt: "Chicken skewers with peppers, fried rice, stir-fried vegetables and beef" },
     flowerCorner: { caption: "The flower corner", alt: "A corner with a brick wall, pink flower stands, a wooden bench, green windows and hanging lamps" },

@@ -4,7 +4,7 @@ import type { PhotoName } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 export function Container({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <div className={cn("mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-12", className)}>{children}</div>;
+  return <div className={cn("mx-auto w-full max-w-7xl px-5 sm:px-8 lg:max-w-[88rem] lg:px-12 xl:max-w-[100rem] 2xl:max-w-[110rem] 2xl:px-[4.5vw]", className)}>{children}</div>;
 }
 
 /**

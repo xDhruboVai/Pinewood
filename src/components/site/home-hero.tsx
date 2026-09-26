@@ -27,9 +27,9 @@ const HERO_SLIDES: { slug: string; photo: PhotoName; position: string; custom?: 
   // green (white-plate shots like Pine 2, the brownie and the Oreo cheesecake looked out of place).
   // The hero is full screen, so smaller images look blurred
   // (the crops from Pinewood's Facebook posters were tried here and taken out, 25 September 2026).
-  { slug: "pine-3", photo: "hero", position: "25% 55%" },
-  { slug: "seafood-platter", photo: "seafoodPlatter", position: "50% 50%" },
-  { slug: "american-mac-cheese", photo: "macAndCheese", position: "50% 60%" },
+  { slug: "pine-3", photo: "hero", position: "80% 50%" },
+  { slug: "seafood-platter", photo: "seafoodPlatter", position: "70% 50%" },
+  { slug: "american-mac-cheese", photo: "macAndCheese", position: "70% 60%" },
 ];
 
 /**
@@ -80,7 +80,7 @@ export function HomeHero({ locale, t, menu, today }: { locale: Locale; t: Dictio
       section: "",
       src: PHOTOS.hero.src,
       alt: t.photos.hero.alt,
-      position: "25% 55%",
+      position: "80% 50%",
     });
   }
 
@@ -94,6 +94,8 @@ export function HomeHero({ locale, t, menu, today }: { locale: Locale; t: Dictio
         accent: t.home.heroAccent,
         eyebrow: t.home.eyebrow,
         note: today?.opens && today.closes ? t.home.heroOpenUntil(formatTime(today.closes, locale)) : t.common.closedToday,
+        reserve: t.nav.reserve,
+        menu: t.nav.menu,
       }}
     />
   );

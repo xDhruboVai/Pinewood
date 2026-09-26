@@ -77,7 +77,8 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
 
       {/* 2. The outlets: a plain directory */}
       <section>
-        <Container className="grid gap-12 py-24 lg:grid-cols-12 lg:gap-16 lg:py-32">
+        {/* The title sits level with the middle of the directory beside it, not in its top corner. */}
+        <Container className="grid gap-12 py-24 lg:grid-cols-12 lg:items-center lg:gap-16 lg:py-32">
           <Reveal className="lg:col-span-4">
             <ScriptTitle>{t.visit.outletsTitle}</ScriptTitle>
           </Reveal>
