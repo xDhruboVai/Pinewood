@@ -17,6 +17,7 @@ const FRIENDLY: Record<string, string> = {
   PW_INVALID_TRANSITION: "That status change isn't allowed from the current status.",
   PW_SLOT_FULL: "The 24h hold lapsed and the seats have been taken. Offer another time or add capacity.",
   PW_NOT_FOUND: "Reservation not found.",
+  PW_NOT_DELETABLE: "Decline or cancel this booking before deleting it.",
 };
 
 /** A database or auth error as a message for staff. Only known PW_ codes are shown; anything else
@@ -51,6 +52,16 @@ export async function setReservationStatus(id: string, status: ReservationStatus
   if (!uuid.safeParse(id).success || !STATUSES.includes(status)) return { ok: false, error: "Invalid request" };
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_set_status", { p_id: id, p_status: status, p_reason: reason?.slice(0, 300) ?? null });
+  return error ? fail(error) : { ok: true, data: undefined };
+}
+
+/** Removes a finished booking for good (managers only; the database refuses live bookings). */
+export async function deleteReservation(id: string): Promise<ActionResult> {
+  const auth = await staffCheck(true);
+  if (!auth.ok) return auth;
+  if (!uuid.safeParse(id).success) return { ok: false, error: "Invalid request" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_delete_reservation", { p_id: id });
   return error ? fail(error) : { ok: true, data: undefined };
 }
 

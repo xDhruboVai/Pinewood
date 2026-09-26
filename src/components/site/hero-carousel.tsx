@@ -207,8 +207,9 @@ export function HeroCarousel({
       <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_90%_80%_at_70%_50%,transparent_55%,rgb(19_47_50/0.55)_100%)]" />
 
       <Container className="relative flex min-h-[100svh] flex-col pt-32 pb-10 lg:min-h-[max(100svh,44rem)] lg:pt-36">
-        <div className="mt-auto max-w-xl lg:my-auto">
-          <p className={cn("hand animate-rise text-5xl text-mustard-400 sm:text-6xl", !bn && "origin-left -rotate-6")}>{labels.accent}</p>
+        {/* From 1280px the text grows with the screen, so a large monitor isn't mostly empty green. */}
+        <div className="mt-auto max-w-xl lg:my-auto xl:max-w-2xl">
+          <p className={cn("hand animate-rise text-5xl text-mustard-400 sm:text-6xl xl:text-7xl 2xl:text-8xl", !bn && "origin-left -rotate-6")}>{labels.accent}</p>
 
           {/* Changing text. All slides share one grid cell so the layout doesn't jump; the active one is
               re-keyed each time it becomes active so it animates in from the swipe direction, and follows
@@ -240,7 +241,9 @@ export function HeroCarousel({
                     className={cn(
                       "hero-serif text-cream-50",
                       active && "hero-in",
-                      long ? "text-[3.25rem] sm:text-[4.5rem] lg:text-[5.25rem]" : "text-[4rem] sm:text-[5.75rem] lg:text-[6.75rem]",
+                      long
+                        ? "text-[3.25rem] sm:text-[4.5rem] lg:text-[5.25rem] xl:text-[5.75rem] 2xl:text-[6.25rem]"
+                        : "text-[4rem] sm:text-[5.75rem] lg:text-[6.75rem] xl:text-[8rem] 2xl:text-[9.5rem]",
                       bn ? "leading-[1.2]" : "leading-[0.95]",
                     )}
                   >
@@ -249,7 +252,7 @@ export function HeroCarousel({
                   {s.description ? (
                     <p
                       className={cn(
-                        "mt-5 max-w-[22rem] text-base leading-[1.7] text-pretty text-cream-100/75 sm:text-[1.0625rem] [--d:90ms]",
+                        "mt-5 max-w-[22rem] text-base leading-[1.7] text-pretty text-cream-100/75 sm:text-[1.0625rem] xl:mt-7 xl:max-w-[28rem] xl:text-xl 2xl:max-w-[32rem] 2xl:text-[1.375rem] [--d:90ms]",
                         active && "hero-in",
                       )}
                     >
@@ -257,8 +260,8 @@ export function HeroCarousel({
                     </p>
                   ) : null}
                   {s.price ? (
-                    <p className={cn("mt-8 [--d:180ms]", active && "hero-in")}>
-                      <span className="hero-serif text-[2.75rem] leading-none text-mustard-400 tabular-nums sm:text-5xl">
+                    <p className={cn("mt-8 xl:mt-10 [--d:180ms]", active && "hero-in")}>
+                      <span className="hero-serif text-[2.75rem] leading-none text-mustard-400 tabular-nums sm:text-5xl xl:text-6xl 2xl:text-7xl">
                         {currency ? <span className="mr-1 text-[0.75em] font-medium">{currency}</span> : null}
                         {amount}
                         <span className="ml-0.5 text-[0.6em] font-normal text-mustard-400/70">/-</span>
@@ -272,7 +275,7 @@ export function HeroCarousel({
         </div>
 
         {/* Bottom rule: menu section | place, in wide-spaced capitals */}
-        <div className="mt-12 flex max-w-xl items-center gap-6 border-t border-cream-100/45 pt-5 lg:mt-0">
+        <div className="mt-12 flex max-w-xl items-center gap-6 border-t border-cream-100/45 pt-5 lg:mt-0 xl:max-w-2xl">
           {slides[index].section ? (
             <>
               <span key={slides[index].key} className="font-nav hero-in shrink-0 text-[0.75rem] font-semibold tracking-[0.2em] text-cream-50 uppercase">

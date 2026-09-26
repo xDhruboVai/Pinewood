@@ -2,7 +2,7 @@
 // anon = the publishable key in a browser, authenticated = a signed-in user (staff or not),
 // service_role = the website's server. Nothing is loosened to make these pass.
 import { beforeAll, describe, expect, it } from "vitest";
-import { book, dhaka, staffUser, standardFixture, openTestDb } from "./helpers";
+import { book, dhaka, pwError, setStatus, staffUser, standardFixture, openTestDb } from "./helpers";
 
 const db = openTestDb();
 let A: Record<string, string>;
@@ -43,7 +43,7 @@ describe("publishable key (anon)", () => {
     for (const [sql, id] of bookingCalls) await expect(db.as("anon", sql, [id()]), sql).rejects.toThrow(DENIED);
   });
   it("cannot read bookings, guests, pre-orders, the waitlist or the email log", async () => {
-    for (const t of ["reservations", "pre_orders", "waitlist_entries", "email_log", "slot_holds", "staff_profiles", "blockouts"]) {
+    for (const t of ["reservations", "pre_orders", "waitlist_entries", "email_log", "slot_holds", "staff_profiles", "blockouts", "dining_tables"]) {
       expect(await db.as("anon", `select * from public.${t}`), t).toEqual([]);
     }
   });
@@ -100,6 +100,19 @@ describe("front of house (foh)", () => {
     const rows = await db.as<{ user_id: string }>("authenticated", "select user_id from public.staff_profiles", [], foh);
     expect(rows.map((r) => r.user_id)).toEqual([foh]);
   });
+  it("can read the dining tables (a signed-in non-staff user cannot)", async () => {
+    expect((await db.as<{ n: number }>("authenticated", "select count(*)::int n from public.dining_tables", [], foh))[0].n).toBeGreaterThan(0);
+    expect(await db.as("authenticated", "select * from public.dining_tables", [], nobody)).toEqual([]);
+  });
+  it("can change a waitlist entry's status, but not the guest's details", async () => {
+    const [w] = await db.q<{ id: string }>(
+      "insert into public.waitlist_entries (area_id, starts_at, ends_at, party_size, customer_name, phone, email) values ($1, now() + interval '3 days', now() + interval '3 days 90 minutes', 2, 'Wait Test', '+8801788000077', 'wt@test.local') returning id",
+      [A.d6],
+    );
+    await db.as("authenticated", "update public.waitlist_entries set status = 'cancelled' where id = $1", [w.id], foh);
+    expect((await db.q("select status from public.waitlist_entries where id = $1", [w.id]))[0].status).toBe("cancelled");
+    await expect(db.as("authenticated", "update public.waitlist_entries set phone = '+8801700000000' where id = $1", [w.id], foh)).rejects.toThrow(DENIED);
+  });
 });
 
 describe("manager", () => {
@@ -108,8 +121,44 @@ describe("manager", () => {
     expect(await price()).toBe(777);
     expect((await db.as("authenticated", "select user_id from public.staff_profiles", [], manager)).length).toBeGreaterThanOrEqual(3);
   });
+  it("can change another staff member's role or access, but not their own", async () => {
+    const other = await staffUser(db, "foh");
+    await db.as("authenticated", "update public.staff_profiles set role = 'manager' where user_id = $1", [other], manager);
+    expect((await db.q("select role from public.staff_profiles where user_id = $1", [other]))[0].role).toBe("manager");
+    await db.as("authenticated", "update public.staff_profiles set is_active = false where user_id = $1", [manager], manager);
+    expect((await db.q("select is_active from public.staff_profiles where user_id = $1", [manager]))[0].is_active).toBe(true);
+    await expect(db.as("authenticated", "update public.staff_profiles set user_id = $1 where user_id = $2", [nobody, other], manager)).rejects.toThrow(DENIED);
+  });
   it("still cannot call the server-only booking functions directly", async () => {
     for (const [sql, id] of bookingCalls) await expect(db.as("authenticated", sql, [id()], manager), sql).rejects.toThrow(DENIED);
+  });
+});
+
+describe("deleting a booking", () => {
+  const del = (id: string, user: string) => db.as("authenticated", "select public.admin_delete_reservation($1)", [id], user);
+  const exists = async (id: string) => (await db.q("select 1 from public.reservations where id = $1", [id])).length === 1;
+
+  it("only a manager can, and only once the booking is over", async () => {
+    const live = (await book(db, { area: A.d6, start: dhaka(5, "13:00") })).id;
+    await expect(del(live, manager)).rejects.toThrow(pwError("PW_NOT_DELETABLE")); // pending
+    await setStatus(db, live, "confirmed");
+    await expect(del(live, manager)).rejects.toThrow(pwError("PW_NOT_DELETABLE"));
+    await setStatus(db, live, "cancelled");
+    await expect(del(live, foh)).rejects.toThrow(pwError("PW_FORBIDDEN"));
+    await expect(del(live, nobody)).rejects.toThrow(pwError("PW_FORBIDDEN"));
+    await expect(db.as("anon", "select public.admin_delete_reservation($1)", [live])).rejects.toThrow(DENIED);
+    expect(await exists(live)).toBe(true);
+    await del(live, manager);
+    expect(await exists(live)).toBe(false);
+    await expect(del(live, manager)).rejects.toThrow(pwError("PW_NOT_FOUND"));
+  });
+  it("takes the booking's email log and tables with it", async () => {
+    const r = (await book(db, { area: A.d6, start: dhaka(6, "13:00") })).id;
+    await setStatus(db, r, "rejected");
+    expect((await db.q("select 1 from public.email_log where reservation_id = $1", [r])).length).toBeGreaterThan(0);
+    await del(r, manager);
+    expect(await db.q("select 1 from public.email_log where reservation_id = $1", [r])).toEqual([]);
+    expect(await db.q("select 1 from public.reservation_tables where reservation_id = $1", [r])).toEqual([]);
   });
 });
 

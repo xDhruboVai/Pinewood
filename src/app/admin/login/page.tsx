@@ -16,7 +16,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </div>
         <div className="mt-10 rounded-md bg-canvas p-8">
           <h1 className="font-display text-3xl text-ink">Sign in</h1>
-          <p className="mt-1 text-sm text-ink-muted">Reservations, kitchen and availability.</p>
+          <p className="mt-1 text-sm text-ink-muted">Reservations and the menu.</p>
           {params.error === "not_staff" ? (
             <p role="alert" className="mt-4 rounded-sm bg-red-50 p-3 text-sm text-red-800">
               This account isn&apos;t an active staff member. Ask a manager to add you.

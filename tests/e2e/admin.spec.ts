@@ -72,6 +72,37 @@ test("declining asks first and does nothing if the answer is no", async ({ page 
   expect((await fakeState()).reservations[0].status).toBe("pending");
 });
 
+test("a finished booking can be deleted (after asking); a live one has no Delete", async ({ page }) => {
+  await seedReservation({ customer_name: "Old Request", starts_at: dhaka(0, "23:00").iso, status: "rejected" });
+  await seedReservation({ customer_name: "Live Guest", starts_at: dhaka(0, "23:00").iso });
+  await signIn(page);
+  await expect(rowFor(page, "Live Guest").getByRole("button", { name: "Delete" })).toHaveCount(0);
+
+  page.once("dialog", (d) => d.dismiss());
+  await rowFor(page, "Old Request").getByRole("button", { name: "Delete" }).click();
+  await expect(rowFor(page, "Old Request")).toBeVisible();
+  expect((await fakeState()).reservations).toHaveLength(2);
+
+  page.once("dialog", (d) => d.accept());
+  await rowFor(page, "Old Request").getByRole("button", { name: "Delete" }).click();
+  await expect(page.getByText("Booking deleted")).toBeVisible();
+  await expect(rowFor(page, "Old Request")).toHaveCount(0);
+  expect((await fakeState()).reservations.map((r) => r.customer_name)).toEqual(["Live Guest"]);
+});
+
+test("filters show one kind of booking at a time", async ({ page }) => {
+  await seedReservation({ customer_name: "Pending Guest", starts_at: dhaka(0, "23:00").iso });
+  await seedReservation({ customer_name: "Confirmed Guest", starts_at: dhaka(0, "23:00").iso, status: "confirmed" });
+  await signIn(page);
+  await page.getByRole("button", { name: "Pending, 1" }).click();
+  await expect(rowFor(page, "Pending Guest")).toBeVisible();
+  await expect(rowFor(page, "Confirmed Guest")).toHaveCount(0);
+  await page.getByRole("button", { name: "Declined, 0" }).click();
+  await expect(page.getByText("No declined bookings for this day.")).toBeVisible();
+  await page.getByRole("button", { name: "All, 2" }).click();
+  await expect(rowFor(page, "Confirmed Guest")).toBeVisible();
+});
+
 test("menu: change a price, and an empty or zero price is refused and put back", async ({ page }) => {
   await signIn(page, "/admin/menu");
   const price = page.getByLabel("Buffalo Wings price");
@@ -105,7 +136,7 @@ test("small screens: the admin header fits and signing out works", async ({ page
   expect(overflow).toBeLessThanOrEqual(0);
   const signOut = page.getByRole("button", { name: "Sign out" }).filter({ visible: true });
   await expect(signOut).toHaveCount(1);
-  await expect(page.getByRole("link", { name: "Kitchen", exact: true }).filter({ visible: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Menu", exact: true }).filter({ visible: true })).toBeVisible();
   await signOut.click();
   await expect(page).toHaveURL(/\/admin\/login/);
 });

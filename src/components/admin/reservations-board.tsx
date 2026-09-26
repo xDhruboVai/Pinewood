@@ -1,30 +1,39 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
-import { resendEmail, setReservationStatus, setWaitlistStatus } from "@/actions/admin";
+import { deleteReservation, resendEmail, setReservationStatus } from "@/actions/admin";
 import { PREORDER_LABEL } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
 import { parseBookingNotes } from "@/lib/booking-notes";
 import { createClient } from "@/lib/supabase/client";
-import { dhakaDate, formatDate, formatPrice, formatTime, isoToDhakaDate } from "@/lib/format";
+import { dhakaDate, formatDate, formatPrice, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { AdminReservation, ReservationStatus, WaitlistEntry } from "@/lib/types";
+import type { AdminReservation, ReservationStatus } from "@/lib/types";
 
-// One grid for the list and its header row: time, guest, people, email, phone, action.
-const ROW_GRID =
-  "grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-5 gap-y-2 px-3 lg:grid-cols-[7.5rem_minmax(0,1.2fr)_5rem_minmax(0,1.4fr)_9.5rem_14rem] lg:gap-x-8";
-// Time in the site's sans, weighted like the menu's prices.
-const TIME = "text-[1.25rem] font-semibold whitespace-nowrap text-ink tabular-nums";
-// Guest name in the menu's dish-name style.
-const NAME = "truncate text-[1.05rem] font-semibold tracking-[0.03em] text-ink uppercase";
-// The other cells sit under the name on phones and in their own column on desktop.
-const CELL = "col-start-2 text-[1rem] lg:col-start-auto";
-// Secondary actions: small wide-tracked caps, like the site's navigation, without a box.
-const SECONDARY = "text-[0.78rem] font-semibold tracking-[0.12em] whitespace-nowrap text-ink-muted uppercase transition-colors hover:text-ink disabled:opacity-50";
+// A working screen, so one typeface (the site's sans) at a few sizes; the serif is kept for the page
+// title only. Rows: time on the left, the guest and the booking in the middle, the state and what
+// staff can do on the right. On phones they stack: time, guest, then the actions.
+const ROW = "grid grid-cols-1 gap-y-2 sm:grid-cols-[5.5rem_minmax(0,1fr)_auto] sm:gap-x-8";
+const TIME = "text-[1.0625rem] leading-6 font-semibold whitespace-nowrap tabular-nums";
+const NAME = "text-[1.0625rem] leading-6 font-semibold break-words";
+const LINK_ACTION = "text-sm font-medium whitespace-nowrap text-ink-muted underline-offset-4 transition-colors hover:text-ink hover:underline disabled:opacity-50";
+const ICON_BUTTON =
+  "inline-flex size-9 items-center justify-center text-ink-muted transition-colors hover:bg-ink/5 hover:text-ink focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-mustard-400";
+
+// Bookings that are over: shown quietly, and a manager may delete them.
+const CLOSED: ReservationStatus[] = ["rejected", "cancelled", "expired", "no_show"];
+
+type Filter = "all" | "pending" | "confirmed" | "declined" | "cancelled";
+const FILTERS: { key: Filter; label: string; statuses?: ReservationStatus[] }[] = [
+  { key: "all", label: "All" },
+  { key: "pending", label: "Pending", statuses: ["pending"] },
+  { key: "confirmed", label: "Confirmed", statuses: ["confirmed", "seated", "completed"] },
+  { key: "declined", label: "Declined", statuses: ["rejected"] },
+  { key: "cancelled", label: "Cancelled", statuses: ["cancelled", "expired"] },
+];
 
 function shiftDate(date: string, days: number) {
   const d = new Date(`${date}T12:00:00+06:00`);
@@ -32,16 +41,21 @@ function shiftDate(date: string, days: number) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dhaka" }).format(d);
 }
 
-export function ReservationsBoard({
-  initialDate,
-}: {
-  initialDate: string;
-}) {
+/** "Today", "Tomorrow", "In 12 days", "3 days ago": where the chosen day sits from today in Dhaka. */
+function relativeDay(date: string) {
+  const days = Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${dhakaDate()}T00:00:00Z`)) / 86_400_000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  if (days === -1) return "Yesterday";
+  return days > 0 ? `In ${days} days` : `${-days} days ago`;
+}
+
+export function ReservationsBoard({ initialDate, canDelete = false }: { initialDate: string; canDelete?: boolean }) {
   const supabase = useMemo(() => createClient(), []);
   const [date, setDate] = useState(initialDate);
   const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
   const [rows, setRows] = useState<AdminReservation[]>([]);
-  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
 
@@ -50,18 +64,12 @@ export function ReservationsBoard({
   const loadRequest = useRef(0);
   const load = useCallback(async () => {
     const request = ++loadRequest.current;
-    const from = new Date(`${date}T00:00:00+06:00`).toISOString();
-    const to = new Date(`${shiftDate(date, 1)}T00:00:00+06:00`).toISOString();
-    const [res, wl] = await Promise.all([
-      supabase.rpc("admin_list_reservations", { p_from: date, p_to: date }),
-      supabase.from("waitlist_entries").select("*").gte("starts_at", from).lt("starts_at", to).order("starts_at"),
-    ]);
+    const res = await supabase.rpc("admin_list_reservations", { p_from: date, p_to: date });
     if (request !== loadRequest.current) return;
     // Say plainly that the list didn't load (not "no bookings"); the details go to the console.
     if (res.error) console.error("admin_list_reservations failed", res.error);
     setLoadFailed(Boolean(res.error));
     setRows((res.data ?? []) as AdminReservation[]);
-    setWaitlist((wl.data ?? []) as WaitlistEntry[]);
     setLoading(false);
   }, [supabase, date]);
 
@@ -87,8 +95,8 @@ export function ReservationsBoard({
         refresh();
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "reservations" }, refresh)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "reservations" }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "pre_orders" }, refresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "waitlist_entries" }, refresh)
       .subscribe();
     return () => {
       clearTimeout(timer);
@@ -97,29 +105,39 @@ export function ReservationsBoard({
   }, [supabase]);
 
   const q = query.trim().toLowerCase();
-  const visible = rows.filter(
+  const matching = rows.filter(
     (r) =>
       !q || r.customer_name.toLowerCase().includes(q) || r.phone.includes(q) || r.reference.toLowerCase().includes(q) || r.email.includes(q),
   );
-  const covers = rows.filter((r) => ["confirmed", "seated", "completed"].includes(r.status)).reduce((s, r) => s + r.party_size, 0);
-  const waiting = waitlist.filter((w) => w.status === "waiting");
+  const inFilter = (r: AdminReservation, key: Filter) => {
+    const statuses = FILTERS.find((f) => f.key === key)?.statuses;
+    return !statuses || statuses.includes(r.status);
+  };
+  const visible = matching.filter((r) => inFilter(r, filter));
+  const confirmed = rows.filter((r) => ["confirmed", "seated", "completed"].includes(r.status));
+  const covers = confirmed.reduce((s, r) => s + r.party_size, 0);
   const toCall = rows.filter((r) => r.status === "pending").length;
+  const isToday = date === dhakaDate();
+  const filterLabel = FILTERS.find((f) => f.key === filter)!.label.toLowerCase();
 
   return (
     <div>
-      {/* Controls: the day, a one-line summary and search. The list shows the whole day in time order. */}
-      <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-b border-line pb-6">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            aria-label="Previous day"
-            className="inline-flex size-10 items-center justify-center rounded-sm border border-line text-ink-muted transition-colors hover:border-ink/35 hover:text-ink"
-            onClick={() => setDate((d) => shiftDate(d, -1))}
-          >
-            <ChevronLeft className="size-4" strokeWidth={1.5} />
-          </button>
-          <label className="relative px-1">
-            <span className="display text-3xl text-ink sm:text-4xl">{formatDate(`${date}T12:00:00+06:00`, "en", { weekday: "long", month: "long" })}</span>
+      {/* The day and search */}
+      <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="flex divide-x divide-line rounded-sm border border-line bg-surface">
+            <button type="button" aria-label="Previous day" className={ICON_BUTTON} onClick={() => setDate((d) => shiftDate(d, -1))}>
+              <ChevronLeft className="size-4" strokeWidth={1.75} />
+            </button>
+            <button type="button" aria-label="Next day" className={ICON_BUTTON} onClick={() => setDate((d) => shiftDate(d, 1))}>
+              <ChevronRight className="size-4" strokeWidth={1.75} />
+            </button>
+          </div>
+          <label className="relative flex items-baseline gap-3 rounded-sm focus-within:outline-2 focus-within:outline-offset-4 focus-within:outline-mustard-400">
+            <span className="text-xl font-semibold text-ink sm:text-[1.375rem]">
+              {formatDate(`${date}T12:00:00+06:00`, "en", { weekday: "long", month: "long" })}
+            </span>
+            <span className={cn("text-sm", isToday ? "font-medium text-accent-ink" : "text-ink-muted")}>{relativeDay(date)}</span>
             <input
               type="date"
               value={date}
@@ -129,30 +147,60 @@ export function ReservationsBoard({
               aria-label="Date"
             />
           </label>
-          <button
-            type="button"
-            aria-label="Next day"
-            className="inline-flex size-10 items-center justify-center rounded-sm border border-line text-ink-muted transition-colors hover:border-ink/35 hover:text-ink"
-            onClick={() => setDate((d) => shiftDate(d, 1))}
-          >
-            <ChevronRight className="size-4" strokeWidth={1.5} />
-          </button>
-          {date !== dhakaDate() ? (
-            <button type="button" className="ml-2 text-sm font-medium text-primary hover:text-accent-ink" onClick={() => setDate(dhakaDate())}>
-              Back to today
-            </button>
+          {!isToday ? (
+            <Button variant="ghost" className="h-9 border border-line px-3 text-sm font-medium" onClick={() => setDate(dhakaDate())}>
+              Today
+            </Button>
           ) : null}
         </div>
-        <p className="text-sm text-ink-muted lg:mr-auto lg:ml-4">
-          <span className="font-semibold text-ink tabular-nums">{covers}</span> guests confirmed · {rows.length} {rows.length === 1 ? "booking" : "bookings"}
-          {toCall ? <span className="text-accent-ink"> · {toCall} to call</span> : null}
-        </p>
         <div className="relative w-full sm:w-72">
           <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-ink-muted" strokeWidth={1.5} />
-          <Input aria-label="Search bookings" placeholder="Name, phone or reference" value={query} onChange={(e) => setQuery(e.target.value)} className="h-11 rounded-sm pl-10 text-sm" />
+          <Input
+            aria-label="Search bookings"
+            placeholder="Name, phone or reference"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="h-10 rounded-sm pl-10 text-sm"
+          />
         </div>
       </div>
 
+      {/* Filters and the day's numbers, on one ruled line */}
+      <div className="mt-6 flex flex-wrap items-end justify-between gap-x-8 gap-y-2 border-b border-line">
+        <div role="group" aria-label="Show bookings" className="-mb-px flex flex-wrap gap-x-6">
+          {FILTERS.map((f) => {
+            const count = rows.filter((r) => inFilter(r, f.key)).length;
+            const active = filter === f.key;
+            return (
+              <button
+                key={f.key}
+                type="button"
+                aria-pressed={active}
+                aria-label={`${f.label}, ${count}`}
+                onClick={() => setFilter(f.key)}
+                className={cn(
+                  "inline-flex items-center gap-2 border-b-2 pt-1 pb-2.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mustard-400",
+                  active ? "border-mustard-400 text-ink" : "border-transparent text-ink-muted hover:text-ink",
+                )}
+              >
+                {f.label}
+                <span
+                  className={cn(
+                    "min-w-5 rounded-full px-1.5 text-center text-xs leading-5 tabular-nums",
+                    active ? "bg-pine-700 text-cream-50" : "bg-ink/[0.06] text-ink-muted",
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="pb-2.5 text-sm text-ink-muted tabular-nums">
+          {rows.length} {rows.length === 1 ? "booking" : "bookings"} · {confirmed.length} confirmed · {covers} {covers === 1 ? "guest" : "guests"} expected
+          {toCall ? <span className="font-medium text-accent-ink"> · {toCall} to call</span> : null}
+        </p>
+      </div>
 
       {loading ? (
         <div className="divide-y divide-line">
@@ -169,83 +217,52 @@ export function ReservationsBoard({
         </div>
       ) : visible.length === 0 ? (
         <p className="border-b border-line py-16 text-center text-sm text-ink-muted">
-          {rows.length > 0 ? `No bookings match "${query.trim()}".` : "No bookings for this day."}
+          {q && matching.length === 0
+            ? `No bookings match "${query.trim()}".`
+            : rows.length === 0
+              ? "No bookings for this day."
+              : `No ${filterLabel} bookings${q ? ` match "${query.trim()}"` : " for this day"}.`}
         </p>
       ) : (
         <ul>
-          <li aria-hidden className={cn(ROW_GRID, "hidden py-3 lg:grid")}>
-            {["Time", "Guest", "People", "Email", "Phone"].map((h) => (
-              <span key={h} className="label text-ink-muted">
-                {h}
-              </span>
-            ))}
-            <span />
-          </li>
           {visible.map((r) => (
-            <ReservationRow key={r.id} r={r} onChanged={load} />
+            <ReservationRow key={r.id} r={r} canDelete={canDelete} onChanged={load} />
           ))}
         </ul>
       )}
-
-      {waiting.length > 0 ? (
-        <section className="pt-16">
-          <h2 className="display text-3xl text-ink">
-            Waitlist <span className="text-ink-muted">{waiting.length}</span>
-          </h2>
-          <p className="mt-1 text-sm text-ink-muted">When seats free up, the guest who joined first gets them automatically.</p>
-          <ul className="mt-6 border-t border-line">
-            {waiting.map((w) => (
-              <li key={w.id} className={cn(ROW_GRID, "items-center border-b border-line py-4")}>
-                <span className={TIME}>{formatTime(w.starts_at)}</span>
-                <span className={NAME}>{w.customer_name}</span>
-                <span className={cn(CELL, "text-ink")}>
-                  {w.party_size}
-                  {w.large_party ? "+" : ""}
-                </span>
-                <a href={`mailto:${w.email}`} className={cn(CELL, "truncate text-ink-muted hover:text-ink")}>
-                  {w.email}
-                </a>
-                <a href={`tel:${w.phone}`} className={cn(CELL, "font-medium text-primary tabular-nums hover:text-accent-ink")}>
-                  {w.phone.replace(/^\+88/, "")}
-                </a>
-                <button
-                  type="button"
-                  className={cn(SECONDARY, "col-start-2 justify-self-start lg:col-start-auto lg:justify-self-end")}
-                  onClick={async () => {
-                    const res = await setWaitlistStatus(w.id, "cancelled");
-                    if (!res.ok) toast.error(res.error);
-                    else load();
-                  }}
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
     </div>
   );
 }
 
-// What a booking says once it has been dealt with.
-const DONE_LABEL: Record<ReservationStatus, string> = {
-  pending: "",
-  confirmed: "Confirmed",
-  seated: "Seated",
-  completed: "Completed",
-  cancelled: "Cancelled",
-  rejected: "Declined",
-  expired: "Not confirmed",
-  no_show: "No-show",
+// What each state is called, and its dot.
+const STATE: Record<ReservationStatus, { label: string; dot: string; text: string }> = {
+  pending: { label: "Awaiting call", dot: "bg-mustard-400", text: "text-ink" },
+  confirmed: { label: "Confirmed", dot: "bg-pine-600", text: "text-ink" },
+  seated: { label: "Seated", dot: "bg-pine-600", text: "text-ink" },
+  completed: { label: "Completed", dot: "bg-ink/30", text: "text-ink-muted" },
+  cancelled: { label: "Cancelled", dot: "bg-danger", text: "text-danger" },
+  rejected: { label: "Declined", dot: "bg-danger", text: "text-danger" },
+  expired: { label: "Not confirmed", dot: "bg-ink/30", text: "text-ink-muted" },
+  no_show: { label: "No-show", dot: "bg-danger", text: "text-danger" },
 };
 
+function StateLabel({ status, label }: { status: ReservationStatus; label?: string }) {
+  const s = STATE[status];
+  return (
+    <span className={cn("inline-flex items-center gap-2 text-sm font-medium whitespace-nowrap", s.text)}>
+      <span aria-hidden className={cn("size-2 rounded-full", s.dot)} />
+      {label ?? s.label}
+    </span>
+  );
+}
+
 /**
- * One booking: time, guest name, people, email, phone, and one action. A new booking can be
- * confirmed or declined; after that the row just says what happened. If the guest asked to cancel
+ * One booking. The time and the guest's name lead; people, phone, email, reference, branch, seating
+ * and the guest's note sit under the name. On the right: a new booking can be confirmed or declined,
+ * a confirmed one cancelled, and a finished one deleted by a manager. If the guest asked to cancel
  * (through the link in their email), the action is "Approve cancel".
  */
-function ReservationRow({ r, onChanged }: { r: AdminReservation; onChanged: () => void }) {
+function ReservationRow({ r, canDelete, onChanged }: { r: AdminReservation; canDelete: boolean; onChanged: () => void }) {
   const [pending, startTransition] = useTransition();
 
   const change = (status: ReservationStatus, success: string, ask?: string) => {
@@ -270,7 +287,20 @@ function ReservationRow({ r, onChanged }: { r: AdminReservation; onChanged: () =
       }
     });
 
+  const remove = () => {
+    if (!window.confirm(`Delete ${r.customer_name}'s ${STATE[r.status].label.toLowerCase()} booking (${r.reference}) for good? Its email history goes with it. This can't be undone.`)) return;
+    startTransition(async () => {
+      const res = await deleteReservation(r.id);
+      if (!res.ok) toast.error(res.error);
+      else {
+        toast.success("Booking deleted");
+        onChanged();
+      }
+    });
+  };
+
   const cancelRequested = Boolean(r.cancel_requested_at) && ["pending", "confirmed"].includes(r.status);
+  const closed = CLOSED.includes(r.status);
   // What the guest asked for. The branch is data on the booking's area; bookings made before branches
   // existed only have it in the notes. Seating preference and the guest's note come from the notes.
   const notes = parseBookingNotes(r.special_requests);
@@ -285,29 +315,56 @@ function ReservationRow({ r, onChanged }: { r: AdminReservation; onChanged: () =
     (mail.status === "failed" || (mail.status === "queued" && Date.now() - new Date(mail.at).getTime() > 15 * 60_000));
 
   return (
-    <li className={cn("border-b border-line", cancelRequested ? "bg-red-50/70" : r.status === "pending" ? "bg-mustard-400/10" : undefined)}>
-      <div className={cn(ROW_GRID, "items-center py-5")}>
-        <span className={TIME}>{formatTime(r.starts_at)}</span>
-        <span className={NAME}>{r.customer_name}</span>
-        <span className={cn(CELL, "text-ink")}>
-          {r.party_size}
-          {r.large_party ? "+" : ""}
-          <span className="text-ink-muted lg:hidden"> {r.party_size === 1 ? "guest" : "guests"}</span>
-        </span>
-        <a href={`mailto:${r.email}`} className={cn(CELL, "truncate text-ink-muted hover:text-ink")}>
-          {r.email}
-        </a>
-        <a href={`tel:${r.phone}`} className={cn(CELL, "font-medium text-primary tabular-nums hover:text-accent-ink")}>
-          {r.phone.replace(/^\+88/, "")}
-        </a>
+    <li className="border-b border-line">
+      <div className={cn(ROW, "py-5")}>
+        <span className={cn(TIME, closed ? "text-ink-muted" : "text-ink")}>{formatTime(r.starts_at)}</span>
 
-        <div className="col-start-2 flex flex-wrap items-center gap-x-4 gap-y-2 lg:col-start-auto lg:flex-nowrap lg:justify-end">
+        <div className="min-w-0">
+          <p className={cn(NAME, closed ? "text-ink-muted" : "text-ink")}>{r.customer_name}</p>
+          <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm text-ink-muted">
+            <span className="text-ink">
+              {r.party_size}
+              {r.large_party ? "+" : ""} {r.party_size === 1 ? "guest" : "guests"}
+            </span>
+            <span aria-hidden>·</span>
+            <a href={`tel:${r.phone}`} className="font-medium text-primary tabular-nums hover:underline">
+              {r.phone.replace(/^\+88/, "")}
+            </a>
+            <span aria-hidden>·</span>
+            <a href={`mailto:${r.email}`} className="min-w-0 break-all hover:text-ink hover:underline">
+              {r.email}
+            </a>
+            <span aria-hidden>·</span>
+            <span className="tabular-nums">{r.reference}</span>
+          </p>
+          {branch || seating ? <p className="mt-1.5 text-sm text-ink">{[branch, seating].filter(Boolean).join(" · ")}</p> : null}
+          {note ? (
+            <p className="mt-2 max-w-2xl border-l-2 border-line pl-3 text-sm leading-relaxed whitespace-pre-line text-ink-muted">“{note}”</p>
+          ) : null}
+          {preOrder ? (
+            <p className="mt-2 text-sm font-medium text-primary tabular-nums">
+              Pre-order: {preOrder.item_count} {preOrder.item_count === 1 ? "item" : "items"} · {formatPrice(Number(preOrder.total))} ·{" "}
+              {PREORDER_LABEL[preOrder.status]}
+            </p>
+          ) : null}
+          {emailProblem ? (
+            <p className="mt-2 text-sm text-danger">
+              The {mail!.kind.replace("_", " ")} email didn&apos;t reach the guest.{" "}
+              <button type="button" className="font-semibold underline underline-offset-2 disabled:opacity-50" disabled={pending} onClick={resend}>
+                Resend
+              </button>
+            </p>
+          ) : null}
+        </div>
+
+        {/* State first, then what can be done about it */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1 sm:flex-col sm:items-end sm:gap-y-2.5 sm:pt-0.5">
           {cancelRequested ? (
             <>
-              <span className="text-xs font-semibold text-danger">Asked to cancel</span>
+              <StateLabel status="cancelled" label="Asked to cancel" />
               <Button
-                size="sm"
                 variant="danger"
+                className="h-9 px-4 text-sm normal-case tracking-normal"
                 disabled={pending}
                 onClick={() => change("cancelled", "Cancelled, guest emailed", "Cancel this booking? The guest will get an email.")}
               >
@@ -316,26 +373,29 @@ function ReservationRow({ r, onChanged }: { r: AdminReservation; onChanged: () =
             </>
           ) : r.status === "pending" ? (
             <>
-              <Button variant="pine" className="h-10 min-w-28 px-5 text-[0.78rem]" disabled={pending} onClick={() => change("confirmed", "Confirmed, guest emailed")}>
-                Confirm
-              </Button>
-              <button
-                type="button"
-                className={SECONDARY}
-                disabled={pending}
-                onClick={() => change("rejected", "Declined, guest emailed", "Decline this booking? The guest will get an email.")}
-              >
-                Decline
-              </button>
+              <StateLabel status="pending" />
+              <div className="flex items-center gap-x-4">
+                <Button variant="pine" className="h-9 px-5 text-sm normal-case tracking-normal" disabled={pending} onClick={() => change("confirmed", "Confirmed, guest emailed")}>
+                  Confirm
+                </Button>
+                <button
+                  type="button"
+                  className={LINK_ACTION}
+                  disabled={pending}
+                  onClick={() => change("rejected", "Declined, guest emailed", "Decline this booking? The guest will get an email.")}
+                >
+                  Decline
+                </button>
+              </div>
             </>
           ) : r.status === "confirmed" ? (
             <>
-              <StateLabel status={r.status} />
+              <StateLabel status="confirmed" />
               {/* For a guest who phones to cancel. Unlike Decline (a request we turn down), this cancels a
                   booking we had confirmed; the seats are freed and the guest is emailed. */}
               <button
                 type="button"
-                className={cn(SECONDARY, "hover:text-danger")}
+                className={cn(LINK_ACTION, "hover:text-danger")}
                 disabled={pending}
                 onClick={() =>
                   change(
@@ -349,66 +409,17 @@ function ReservationRow({ r, onChanged }: { r: AdminReservation; onChanged: () =
               </button>
             </>
           ) : (
-            <StateLabel status={r.status} />
+            <>
+              <StateLabel status={r.status} />
+              {closed && canDelete ? (
+                <button type="button" className={cn(LINK_ACTION, "hover:text-danger")} disabled={pending} onClick={remove}>
+                  Delete
+                </button>
+              ) : null}
+            </>
           )}
         </div>
-
-        {branch || seating || note || preOrder || emailProblem ? (
-          <div className="col-start-2 space-y-1.5 lg:col-[2/-1]">
-            {branch || seating ? (
-              <p className="text-[0.78rem] font-semibold tracking-[0.12em] text-ink uppercase">{[branch, seating].filter(Boolean).join(" · ")}</p>
-            ) : null}
-            {note ? <p className="max-w-3xl text-[0.95rem] leading-relaxed whitespace-pre-line text-ink-muted">“{note}”</p> : null}
-            {preOrder ? (
-              <Link
-                href={`/admin/kitchen?date=${isoToDhakaDate(r.starts_at)}`}
-                className="inline-block text-[0.9rem] font-medium text-primary tabular-nums hover:text-accent-ink"
-              >
-                Pre-order: {preOrder.item_count} {preOrder.item_count === 1 ? "item" : "items"} · {formatPrice(Number(preOrder.total))} ·{" "}
-                {PREORDER_LABEL[preOrder.status]}
-              </Link>
-            ) : null}
-            {emailProblem ? (
-              <p className="text-[0.85rem] text-danger">
-                The {mail!.kind.replace("_", " ")} email didn&apos;t reach the guest.{" "}
-                <button type="button" className="font-semibold underline underline-offset-2 disabled:opacity-50" disabled={pending} onClick={resend}>
-                  Resend
-                </button>
-              </p>
-            ) : null}
-          </div>
-        ) : null}
       </div>
     </li>
   );
-}
-
-/**
- * A handled booking's state. "Confirmed" gets a small hand-drawn tick in Pinewood green (in the
- * spirit of the drawn stroke under the hero's "Open till" note); "Declined" and "No-show" a drawn
- * cross; everything else is a quiet word.
- */
-function StateLabel({ status }: { status: ReservationStatus }) {
-  const label = DONE_LABEL[status];
-  if (status === "confirmed") {
-    return (
-      <span className="inline-flex items-center gap-2 text-[0.95rem] font-semibold text-pine-700">
-        <svg aria-hidden viewBox="0 0 24 24" fill="none" className="size-5 -rotate-6">
-          <path d="M3.5 12.8c2 1.6 3.6 3.4 5 5.6 2.6-5.4 6.4-9.8 11.8-13.6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        {label}
-      </span>
-    );
-  }
-  if (status === "rejected" || status === "no_show") {
-    return (
-      <span className="inline-flex items-center gap-2 text-[0.95rem] font-medium text-danger">
-        <svg aria-hidden viewBox="0 0 24 24" fill="none" className="size-4">
-          <path d="M6 6.5c4 3.4 8 7.4 12 11.5M17.5 6c-3.8 3.6-7.6 7.6-11 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-        {label}
-      </span>
-    );
-  }
-  return <span className="text-[0.95rem] text-ink-muted">{label}</span>;
 }

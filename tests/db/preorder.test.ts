@@ -129,6 +129,22 @@ describe("saving again, locking and cut-off", () => {
     await setStatus(db, cancelled, "cancelled");
     await expect(save(cancelled, [{ item_id: dish, quantity: 1 }])).rejects.toThrow(pwError("PW_PREORDER_CLOSED"));
   });
+  it("staff status changes: served and cancelled are final; only the guest sets submitted", async () => {
+    const r = await confirmedBooking();
+    await save(r, [{ item_id: dish, quantity: 1 }]);
+    const { po } = await order(r);
+    const staff = (await db.q<{ user_id: string }>("select user_id from public.staff_profiles where is_active limit 1"))[0].user_id;
+    const set = (status: string) => db.as("authenticated", "select public.admin_set_pre_order_status($1, $2::public.preorder_status)", [po.id, status], staff);
+    await set("acknowledged");
+    await set("preparing");
+    await expect(set("submitted")).rejects.toThrow(pwError("PW_INVALID_TRANSITION"));
+    await set("served");
+    await expect(set("preparing")).rejects.toThrow(pwError("PW_INVALID_TRANSITION"));
+    expect((await order(r)).po.status).toBe("served");
+    await expect(
+      db.as("authenticated", "select public.admin_set_pre_order_status(gen_random_uuid(), 'ready')", [], staff),
+    ).rejects.toThrow(pwError("PW_NOT_FOUND"));
+  });
   it("closes 60 minutes before the booking", async () => {
     const [soon] = await db.q<{ id: string }>(
       `insert into public.reservations (area_id, starts_at, ends_at, party_size, customer_name, phone, email, status)

@@ -103,6 +103,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             className: "!rounded-sm !border-line !bg-surface !text-ink !font-sans",
           }}
         />
+        {/* Preview mode (PW_PREVIEW=1) runs on sample data and throws every change away, which is
+            easy to mistake for the real site: bookings and admin edits "work" but save nothing. */}
+        {process.env.PW_PREVIEW === "1" ? (
+          <p
+            role="status"
+            className="fixed bottom-3 left-3 z-[60] rounded-sm bg-mustard-400 px-3 py-1.5 font-sans text-xs font-semibold text-pine-800 shadow"
+          >
+            Preview mode: sample data, nothing is saved
+          </p>
+        ) : null}
       </body>
     </html>
   );

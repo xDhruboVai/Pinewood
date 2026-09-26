@@ -72,7 +72,7 @@ Staff screens for hours, closures, blockouts and staff accounts are retired for 
 ### Deploy order for the September 2026 changes
 
 1. Deploy the Edge Function: `npm run functions:deploy` (it understands the new `log_id` email field and still works with the old database).
-2. Apply the migrations: `supabase db push` (`20260926000100_branches`, `20260926000200_email_delivery`, `20260926000300_data_integrity`).
+2. Apply the migrations: `supabase db push` (`20260926000100_branches`, `20260926000200_email_delivery`, `20260926000300_data_integrity`, `20260926000400_security_hardening`).
 3. Add each branch's real areas and tables with `supabase/setup/branch_setup.sql`, then switch off the placeholder areas that have no branch (step 5 in that file). Until they're off, a hand-made request could still hold seats in them; the website itself never offers them.
 4. Deploy the website. Until step 3 is done for a branch, its booking form shows "no online slots" and asks guests to call.
 
@@ -84,6 +84,18 @@ In Supabase **Authentication**:
 2. Add `http://localhost:3000/**` and the production URL to redirect URLs.
 3. Disable public sign-ups.
 4. Configure invite and recovery email templates to route through `/auth/confirm`.
+5. Turn on leaked-password protection (**Authentication → Passwords**); the Supabase security advisor flags it as off.
+
+### Rotating the webhook secret
+
+`WEBHOOK_SECRET` lives in three places and they must match: the Vault secret `pinewood_webhook_secret`, Render (`pinewood-backend` → Environment) and the Edge Function secrets. To rotate it (for example because an old value reached git history):
+
+1. Generate a new value: `openssl rand -hex 32`.
+2. Set it in Render and in the Edge Function (`npx supabase secrets set WEBHOOK_SECRET=...`).
+3. Update Vault with the rotation line at the bottom of `supabase/setup/vault_secrets.sql`.
+4. Update your local `supabase/.env` and `backend/.env`.
+
+Emails queued in the minutes between steps 2 and 3 fail with 401 and are retried by the database (up to 3 attempts, 5 minutes apart), so do steps 2 and 3 back to back.
 
 Create the first user in **Authentication -> Users -> Add user**. Then run the commented `staff_profiles` insert in [`supabase/setup/vault_secrets.sql`](../supabase/setup/vault_secrets.sql), replacing the email and name.
 

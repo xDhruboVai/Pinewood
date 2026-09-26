@@ -6,10 +6,9 @@ import { signOut } from "@/actions/admin";
 import { Logo } from "@/components/site/logo";
 import type { StaffRole } from "@/lib/types";
 
-// Staff screens: bookings, the kitchen's pre-orders, and the menu (managers).
+// Staff only need two screens: bookings and the menu (Saalim, September 2026).
 const LINKS = [
   { href: "/admin/reservations", label: "Reservations", manager: false },
-  { href: "/admin/kitchen", label: "Kitchen", manager: false },
   { href: "/admin/menu", label: "Menu", manager: true },
 ];
 
@@ -20,10 +19,10 @@ export function AdminNav({ name, role }: { name: string; role: StaffRole }) {
 
   return (
     <header className="grain grain-dark sticky top-0 z-40 bg-pine-700 text-cream-100">
-      {/* Phones: the links get their own row under the logo so three of them fit. */}
+      {/* Phones: the links get their own row under the logo. */}
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 px-5 pt-3 pb-1 sm:h-20 sm:flex-nowrap sm:px-8 sm:py-0 lg:px-12">
         <Link href="/admin/reservations" className="order-1 flex shrink-0 items-center">
-          <Logo tone="light" subline="Admin" />
+          <Logo tone="light" subline="Staff" />
         </Link>
 
         {/* Below 768px: Sign out next to the logo (phones) or at the end of the row (small tablets),

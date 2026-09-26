@@ -2,8 +2,9 @@ import { cn } from "@/lib/utils";
 import type { PreOrderStatus } from "@/lib/types";
 
 /**
- * Page heading, built like the Menu page's header: a teal band with a small mustard label, the
- * title in the Pinewood script (lowercase) and a short line under it. Full width, above `AdminBody`.
+ * Page heading for the staff screens: a small label, the title in the display serif and one line on
+ * how the screen is used, on the cream page under the teal navigation. Compact on purpose, so the
+ * bookings and dishes start near the top of the screen. Full width, above `AdminBody`.
  */
 export function PageHeader({
   title,
@@ -17,12 +18,12 @@ export function PageHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <section className="grain grain-dark bg-pine-700 text-cream-100">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-end justify-between gap-x-8 gap-y-5 px-5 pt-10 pb-12 sm:px-8 sm:pt-14 lg:px-12">
-        <div className="max-w-2xl">
-          <p className="eyebrow !text-mustard-400">{kicker ?? "Pinewood staff"}</p>
-          <h1 className="script mt-3 pl-1.5 text-6xl lowercase sm:text-7xl">{title}</h1>
-          {description ? <p className="mt-4 max-w-xl leading-relaxed text-cream-100/75">{description}</p> : null}
+    <section>
+      <div className="mx-auto flex max-w-7xl flex-wrap items-end justify-between gap-x-8 gap-y-4 px-5 pt-7 sm:px-8 sm:pt-9 lg:px-12">
+        <div className="max-w-3xl">
+          <p className="eyebrow">{kicker ?? "Pinewood staff"}</p>
+          <h1 className="display mt-1 text-[2.25rem] text-ink sm:text-[2.625rem]">{title}</h1>
+          {description ? <p className="mt-1.5 text-sm leading-relaxed text-pretty text-ink-muted">{description}</p> : null}
         </div>
         {children ? <div className="flex flex-wrap items-center gap-3">{children}</div> : null}
       </div>
@@ -30,9 +31,9 @@ export function PageHeader({
   );
 }
 
-/** The page's content area: the site's container width and padding, below the `PageHeader` band. */
+/** The page's content area: the site's container width and padding, below the `PageHeader`. */
 export function AdminBody({ children }: { children: React.ReactNode }) {
-  return <div className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8 lg:px-12 lg:py-14">{children}</div>;
+  return <div className="mx-auto w-full max-w-7xl px-5 pt-7 pb-16 sm:px-8 sm:pt-8 lg:px-12">{children}</div>;
 }
 
 type Tone = "mustard" | "pine" | "wood" | "muted" | "danger";

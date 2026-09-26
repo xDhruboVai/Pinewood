@@ -248,6 +248,14 @@ function rpc(req, name, a) {
       });
     case "admin_resend_email":
       return staffOnly(req, () => ({ status: 204 }));
+    case "admin_delete_reservation":
+      return staffOnly(req, () => {
+        const i = s.reservations.findIndex((x) => x.id === a.p_id);
+        if (i === -1) return pwError("PW_NOT_FOUND");
+        if (["pending", "confirmed", "seated"].includes(s.reservations[i].status)) return pwError("PW_NOT_DELETABLE");
+        s.reservations.splice(i, 1);
+        return { status: 204 };
+      });
     case "request_cancellation": {
       const r = s.reservations.find((x) => x.id === a.p_reservation);
       if (!r || !["pending", "confirmed"].includes(r.status)) return pwError("PW_CANNOT_CANCEL");

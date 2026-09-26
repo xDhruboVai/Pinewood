@@ -19,7 +19,7 @@ Website, reservation system and staff dashboard for Pine Wood Café & Restaurant
 | Public site: Home, Menu, Spaces, Visit, Privacy (English / বাংলা, day / evening ambiance) | `src/app/(site)` |
 | Booking flow: live availability → 10-min slot hold → request → waitlist | `src/components/reserve/booking-flow.tsx`, `src/actions/reservation.ts` |
 | Guest link from email: status, pre-order builder, cancellation request | `src/app/(site)/reservation/[token]` |
-| Staff dashboard: overview, reservations, kitchen, availability, menu, analytics, staff | `src/app/admin` |
+| Staff dashboard: reservations and menu (the other screens redirect to reservations) | `src/app/admin` |
 | Database schema, booking engine, RLS, realtime, cron | `supabase/migrations` |
 | Seed data (real Pine Wood menu, areas, hours) | `supabase/seed.sql` |
 | Render webhook adapter and deployment service | `backend`, `render.yaml` |
@@ -49,7 +49,7 @@ reservations.status = pending  (holds seats for 24h or until the slot starts)
 status = confirmed ──► DB trigger ──► pg_net ──► Render ──► Edge Function ──► Resend
         │                                   email with signed pre-order link
         ▼ guest opens link (JWT, no account) → pre-orders until 60 min before
-pre_orders ──► /admin/kitchen (realtime)
+pre_orders ──► shown on the booking in /admin/reservations (realtime)
         │
         ▼ pg_cron every 5 min: expire unconfirmed pendings (email + waitlist promotion),
           clean holds, send 2-hour reminders
@@ -216,8 +216,11 @@ Create a Render Blueprint from this repository. Render will use `render.yaml` an
 
 - Guests never touch tables directly: booking RPCs are executable only by the service role, called from server actions after validation, honeypot and per-browser / per-network hold limits.
 - Staff access is enforced in Postgres (`is_staff()` / `is_manager()` in RLS and in every admin RPC), not just in the UI.
-- Pre-order links are HS256 JWTs bound to `reservations.token_version`; bump the version to revoke a link. Prices are always recomputed in the database.
+- Pre-order links are HS256 JWTs bound to `reservations.token_version` and expire 7 days after the booking ends. Cancelled, rejected and expired bookings already refuse pre-orders and cancel requests, so links are not revoked automatically. To kill a leaked link, run `update public.reservations set token_version = token_version + 1 where reference = 'PW-XXXXXX';` in the SQL editor; the next email sent for that booking (e.g. Resend in the admin) carries a working link. Prices are always recomputed in the database.
 - `/reservation/*` responses are `no-store`, `no-referrer` and `noindex`.
+- Every page sends a Content-Security-Policy (`next.config.ts`): scripts only from the site itself, connections only to the site and Supabase, frames only for the Google Maps embed. Add any new outside service there, or the browser blocks it.
+- Staff can change only a waitlist entry's status, managers can't change their own role or access, and dining tables are visible to staff only (migration `20260926000400_security_hardening`).
+- Hold limits per network use the first `X-Forwarded-For` address, which Vercel sets itself. Behind a different host or proxy, check that it overwrites that header, or the limit can be sidestepped.
 
 ## Changelog
 
