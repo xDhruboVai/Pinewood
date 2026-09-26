@@ -162,7 +162,7 @@ export function HeroCarousel({
       onKeyDown={onKeyDown}
       className={cn(
         // Pulled up under the see-through header so the photo runs behind the navigation.
-        "relative isolate -mt-20 touch-pan-y overflow-hidden bg-pine-800 text-cream-100 select-none focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-mustard-400",
+        "relative isolate -mt-20 touch-pan-y 2xl:-mt-24 overflow-hidden bg-pine-800 text-cream-100 select-none focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-mustard-400",
         many && (drag === null ? "cursor-grab" : "cursor-grabbing"),
         fontClassName,
       )}
@@ -206,7 +206,8 @@ export function HeroCarousel({
       <div aria-hidden className="absolute inset-x-0 top-0 -z-10 h-40 bg-gradient-to-b from-pine-800/80 to-transparent" />
       <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_90%_80%_at_70%_50%,transparent_55%,rgb(19_47_50/0.55)_100%)]" />
 
-      <Container className="relative flex min-h-[100svh] flex-col pt-32 pb-10 lg:min-h-[max(100svh,44rem)] lg:pt-36">
+      {/* Wider than the site's usual column from 1536px, lined up with the header (header.tsx). */}
+      <Container className="relative flex min-h-[100svh] flex-col pt-32 pb-10 lg:min-h-[max(100svh,44rem)] lg:pt-36 2xl:max-w-[110rem] 2xl:px-[4.5vw]">
         {/* From 1280px the text grows with the screen, so a large monitor isn't mostly empty green. */}
         <div className="mt-auto max-w-xl lg:my-auto xl:max-w-2xl">
           <p className={cn("hand animate-rise text-5xl text-mustard-400 sm:text-6xl xl:text-7xl 2xl:text-8xl", !bn && "origin-left -rotate-6")}>{labels.accent}</p>

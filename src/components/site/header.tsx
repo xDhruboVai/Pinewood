@@ -42,9 +42,17 @@ export function Header() {
 
   return (
     <header className={cn("sticky top-0 z-40 text-cream-100 transition-colors duration-500", overHero ? "bg-transparent" : "bg-pine-700")}>
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-6 px-5 sm:px-8 lg:px-12">
+      {/* On the home page the header widens from 1536px with the hero (hero-carousel.tsx), so a large
+          screen isn't framed by empty green, and grows (taller bar, larger badge) to suit the hero's
+          larger type. Other pages keep it in line with their content. */}
+      <div
+        className={cn(
+          "mx-auto flex h-20 max-w-7xl items-center justify-between gap-6 px-5 sm:px-8 lg:px-12",
+          pathname === "/" && "2xl:h-24 2xl:max-w-[110rem] 2xl:px-[4.5vw]",
+        )}
+      >
         <Link href="/" aria-label={t.nav.home} className="flex shrink-0 items-center">
-          <Logo tone="light" priority />
+          <Logo tone="light" priority className={pathname === "/" ? "2xl:[&_img]:h-[4.5rem]" : undefined} />
         </Link>
 
         {/* Tighter between 768 and 1023px so the links and the Reserve button fit on one line. */}

@@ -194,28 +194,37 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
         </Container>
       </section>
 
-      {/* 4. Call or get directions */}
+      {/* 4. Call or get directions: three columns aligned at the top (the intro, the numbers, the way
+          to each outlet), each labelled, so nothing floats in the middle of the band. The numbers are in
+          the sans: the display serif's digits dip below the line and read as uneven. */}
       <section className="grain grain-dark bg-pine-700 text-cream-100">
-        <Container className="grid gap-10 py-24 lg:grid-cols-12 lg:gap-16 lg:py-28">
+        <Container className="grid gap-12 py-20 lg:grid-cols-12 lg:gap-16 lg:py-24">
           <Reveal className="lg:col-span-4">
             <ScriptTitle light>{t.visit.contactTitle}</ScriptTitle>
             <p className="mt-4 max-w-xs leading-relaxed text-cream-100/70">{t.visit.contactBody}</p>
           </Reveal>
-          <Reveal delay={120} className="flex flex-col gap-8 lg:col-span-8 lg:flex-row lg:items-end lg:justify-between lg:pt-3">
-            <ul className="space-y-1">
+          <Reveal delay={100} className="lg:col-span-4 lg:border-l lg:border-cream-100/15 lg:pl-12 xl:col-span-3">
+            <p className="eyebrow !text-mustard-400">{t.reserve.phone}</p>
+            <ul className="mt-5 space-y-3">
               {SITE.phones.map((p) => (
                 <li key={p.tel}>
-                  <a href={`tel:${p.tel}`} className="display text-4xl text-cream-50 tabular-nums transition-colors hover:text-mustard-300 sm:text-5xl">
+                  <a
+                    href={`tel:${p.tel}`}
+                    className="text-[1.9rem] leading-tight font-medium tracking-[0.01em] whitespace-nowrap text-cream-50 tabular-nums transition-colors hover:text-mustard-300 sm:text-[2.1rem]"
+                  >
                     {p.display}
                   </a>
                 </li>
               ))}
             </ul>
-            <ul className="space-y-4">
+          </Reveal>
+          <Reveal delay={200} className="lg:col-span-4 lg:border-l lg:border-cream-100/15 lg:pl-12 xl:col-span-5">
+            <p className="eyebrow !text-mustard-400">{t.visit.outletsTitle}</p>
+            <ul className="mt-5 space-y-4">
               {outlets.map((o) => (
-                <li key={o.slug}>
-                  <p className="text-cream-100/70">{o.name[locale]}</p>
-                  <QuietLink href={mapsDirectionsUrl(o.mapQuery)} external light className="mt-1">
+                <li key={o.slug} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-5 gap-y-1 lg:grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto]">
+                  <span className="text-cream-100/80">{o.name[locale]}</span>
+                  <QuietLink href={mapsDirectionsUrl(o.mapQuery)} external light>
                     {t.visit.directions}
                   </QuietLink>
                 </li>

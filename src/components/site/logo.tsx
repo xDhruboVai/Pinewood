@@ -6,8 +6,9 @@ import { cn } from "@/lib/utils";
 const BADGE = { width: 975, height: 685 };
 const TREE = { width: 103, height: 156 };
 // Width the artwork is shown at (CSS px), so the browser fetches a small copy rather than the full
-// 975px artwork: h-14 badge ≈ 80px wide, h-28 footer badge ≈ 160px, tree (h-7 to h-14) ≤ 37px.
-const SHOWN = { badge: "80px", stacked: "160px", tree: "40px" };
+// 975px artwork: h-14 badge ≈ 80px wide (≈ 103px at h-[4.5rem], the home header from 1536px), h-28
+// footer badge ≈ 160px, tree (h-7 to h-14) ≤ 37px.
+const SHOWN = { badge: "(min-width: 1536px) 104px, 80px", stacked: "160px", tree: "40px" };
 const ALT = "Pinewood Cafe + Kitchen, since 2016";
 
 /**

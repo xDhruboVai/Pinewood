@@ -17,7 +17,7 @@ const cormorant = Cormorant_Garamond({
 });
 const kaushan = Kaushan_Script({ subsets: ["latin"], weight: "400", variable: "--font-kaushan", display: "swap" });
 // Navigation, matching Saalim's reference design: a wide-tracked sans. The home hero's serif and hand
-// script (Playfair, Sacramento) are loaded in home-hero.tsx, so only the home page downloads them.
+// script (Young Serif, Sacramento) are loaded in home-hero.tsx, so only the home page downloads them.
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-montserrat", display: "swap" });
 const fira = Fira_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-fira", display: "swap" });
 const bnSerif = Noto_Serif_Bengali({

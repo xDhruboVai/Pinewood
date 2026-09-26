@@ -11,10 +11,22 @@ import { getI18n, pick } from "@/lib/i18n";
 import { formatPrice } from "@/lib/format";
 import { GUEST_REVIEWS } from "@/lib/reviews";
 import { DISH_PHOTOS, PHOTOS, SITE, mapsSearchUrl, type PhotoName } from "@/lib/site";
+import { cn } from "@/lib/utils";
 
 // Food photos without a sure menu match, shown as a photo wall (two shapes, alternating).
 // Twelve, with every third one landscape: in 2 or 4 columns each column gets the same mix of
 // shapes, so the columns end level instead of leaving a gap after the last photo.
+// The rooms collage on the home page (section 3): one large photo, a tall one beside it and a row of
+// three below (6 columns on tablets and up, 2 on phones). The brick room is left out: it's the
+// backdrop of the reservation band further down this page.
+const ROOMS: { name: PhotoName; tile: string; position?: string }[] = [
+  { name: "windowRoom", tile: "col-span-2 row-span-2 sm:col-span-4" },
+  { name: "swingCorner", tile: "row-span-2 sm:col-span-2", position: "50% 40%" },
+  { name: "coffeeCounter", tile: "sm:col-span-2", position: "40% 50%" },
+  { name: "flowerCorner", tile: "sm:col-span-2" },
+  { name: "muralRoom", tile: "col-span-2 sm:col-span-2" },
+];
+
 const TABLES: PhotoName[] = ["steakSet", "shashlikSet", "alfredoBake", "setMenus", "spaghetti", "breakfastPlate", "coffeeCup", "potatoWedges", "chickenRicePlate", "clubSandwichPlatter", "skewerPlate", "chickenPlate"];
 
 /**
@@ -95,26 +107,29 @@ export default async function HomePage() {
         </Container>
       </section>
 
-      {/* 3. The rooms */}
+      {/* 3. The rooms: the words on the left and a collage of the rooms on the right, so the section
+          is filled by the place itself rather than one photo and empty green. Captions sit on the
+          photos. On phones the collage is two columns under the text. */}
       <section className="bg-pine-100 evening:bg-pine-800">
-        <Container className="grid gap-14 py-24 lg:grid-cols-12 lg:gap-16 lg:py-32">
-          <Reveal as="figure" className="lg:col-span-7">
-            <Photo name="windowRoom" alt={t.photos.windowRoom.alt} sizes="(min-width: 1024px) 55vw, 100vw" className="aspect-[4/3]" />
-            <figcaption className="mt-3 text-sm text-ink-muted">{t.photos.windowRoom.caption}</figcaption>
-          </Reveal>
-          <Reveal delay={120} className="flex flex-col lg:col-span-5">
-            <ScriptTitle>{t.home.insideTitle}</ScriptTitle>
+        <Container className="grid items-center gap-12 py-20 lg:grid-cols-12 lg:gap-14 lg:py-28">
+          <Reveal className="lg:col-span-4">
+            <p className="eyebrow">{t.home.insideEyebrow}</p>
+            <ScriptTitle className="mt-2">{t.home.insideTitle}</ScriptTitle>
             <p className="mt-6 max-w-sm leading-relaxed text-ink-muted">{t.about.roomsBody}</p>
-            <QuietLink href="/about#rooms" className="mt-6">
+            <QuietLink href="/about#rooms" className="mt-7">
               {t.home.insideCta}
             </QuietLink>
-            {/* Pushed to the bottom so it lines up with the large photo instead of floating mid-column;
-                only on wide screens, where the column has room for it beside the text. */}
-            <figure className="hidden w-1/2 pt-12 xl:mt-auto xl:block">
-              <Photo name="coffeeCounter" alt={t.photos.coffeeCounter.alt} sizes="20vw" className="aspect-square" position="40% 50%" />
-              <figcaption className="mt-3 text-sm text-ink-muted">{t.photos.coffeeCounter.caption}</figcaption>
-            </figure>
           </Reveal>
+          <div className="grid auto-rows-[8.5rem] grid-cols-2 gap-3 sm:auto-rows-[clamp(8rem,12vw,12.5rem)] sm:grid-cols-6 sm:gap-4 lg:col-span-8">
+            {ROOMS.map(({ name, tile, position }, i) => (
+              <Reveal as="figure" key={name} delay={i * 70} className={cn("relative", tile)}>
+                <Photo name={name} alt={t.photos[name].alt} sizes={i === 0 ? "(min-width: 1024px) 45vw, 100vw" : "(min-width: 1024px) 22vw, 50vw"} position={position} className="h-full" />
+                <figcaption className="pointer-events-none absolute bottom-2.5 left-2.5 rounded-[2px] bg-pine-900/75 px-2 py-1 text-[0.72rem] font-medium text-cream-50 sm:bottom-3 sm:left-3 sm:text-xs">
+                  {t.photos[name].caption}
+                </figcaption>
+              </Reveal>
+            ))}
+          </div>
         </Container>
       </section>
 

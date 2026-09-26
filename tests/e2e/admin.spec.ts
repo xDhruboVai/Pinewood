@@ -8,6 +8,11 @@ test.beforeEach(async () => {
 });
 
 const rowFor = (page: Page, name: string) => page.getByRole("listitem").filter({ hasText: name });
+// Secondary actions (Decline, Cancel booking, Resend, Delete) sit in each row's ⋮ menu.
+async function fromMenu(page: Page, name: string, action: string) {
+  await page.getByRole("button", { name: `More actions for ${name}` }).click();
+  await page.getByRole("menuitem", { name: action }).click();
+}
 
 test("signed-out visitors are sent to the login page", async ({ page }) => {
   await page.goto("/admin/reservations");
@@ -37,7 +42,8 @@ test("reservations: find a booking, confirm it, cancel a confirmed one, sign out
 
   const rafiq = rowFor(page, "Rafiq Hasan");
   await expect(rafiq).toBeVisible();
-  await expect(rafiq.getByText("Banani · Inside (non-smoking)")).toBeVisible();
+  await expect(rafiq.getByText("Banani", { exact: true })).toBeVisible();
+  await expect(rafiq.getByText("Inside (non-smoking)", { exact: true })).toBeVisible();
   await expect(rafiq.getByText("“Birthday”")).toBeVisible();
 
   await page.getByRole("textbox", { name: "Search bookings" }).fill("rafiq");
@@ -48,11 +54,12 @@ test("reservations: find a booking, confirm it, cancel a confirmed one, sign out
 
   await rafiq.getByRole("button", { name: "Confirm" }).click();
   await expect(page.getByText("Confirmed, guest emailed")).toBeVisible();
-  await expect(rafiq.getByRole("button", { name: "Cancel booking" })).toBeVisible();
+  await expect(rafiq.getByRole("button", { name: "Confirm" })).toHaveCount(0);
+  await expect(rafiq.getByText("Confirmed", { exact: true })).toBeVisible();
   expect((await fakeState()).reservations.find((r) => r.customer_name === "Rafiq Hasan")?.status).toBe("confirmed");
 
   page.once("dialog", (d) => d.accept());
-  await rowFor(page, "Mitu Akter").getByRole("button", { name: "Cancel booking" }).click();
+  await fromMenu(page, "Mitu Akter", "Cancel booking");
   await expect(page.getByText("Booking cancelled, guest emailed")).toBeVisible();
   expect((await fakeState()).reservations.find((r) => r.customer_name === "Mitu Akter")?.status).toBe("cancelled");
 
@@ -67,7 +74,7 @@ test("declining asks first and does nothing if the answer is no", async ({ page 
   await seedReservation({ customer_name: "Sadia Noor", starts_at: dhaka(0, "23:00").iso });
   await signIn(page);
   page.once("dialog", (d) => d.dismiss());
-  await rowFor(page, "Sadia Noor").getByRole("button", { name: "Decline" }).click();
+  await fromMenu(page, "Sadia Noor", "Decline");
   await expect(rowFor(page, "Sadia Noor").getByRole("button", { name: "Confirm" })).toBeVisible();
   expect((await fakeState()).reservations[0].status).toBe("pending");
 });
@@ -76,18 +83,35 @@ test("a finished booking can be deleted (after asking); a live one has no Delete
   await seedReservation({ customer_name: "Old Request", starts_at: dhaka(0, "23:00").iso, status: "rejected" });
   await seedReservation({ customer_name: "Live Guest", starts_at: dhaka(0, "23:00").iso });
   await signIn(page);
-  await expect(rowFor(page, "Live Guest").getByRole("button", { name: "Delete" })).toHaveCount(0);
+  await page.getByRole("button", { name: "More actions for Live Guest" }).click();
+  await expect(page.getByRole("menuitem", { name: "Decline" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Delete" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
 
   page.once("dialog", (d) => d.dismiss());
-  await rowFor(page, "Old Request").getByRole("button", { name: "Delete" }).click();
+  await fromMenu(page, "Old Request", "Delete");
   await expect(rowFor(page, "Old Request")).toBeVisible();
   expect((await fakeState()).reservations).toHaveLength(2);
 
   page.once("dialog", (d) => d.accept());
-  await rowFor(page, "Old Request").getByRole("button", { name: "Delete" }).click();
+  await fromMenu(page, "Old Request", "Delete");
   await expect(page.getByText("Booking deleted")).toBeVisible();
   await expect(rowFor(page, "Old Request")).toHaveCount(0);
   expect((await fakeState()).reservations.map((r) => r.customer_name)).toEqual(["Live Guest"]);
+});
+
+test("View opens the booking in a side panel with its details and actions; Escape closes it", async ({ page }) => {
+  await seedReservation({ customer_name: "Nadia Rahman", starts_at: dhaka(0, "23:00").iso, area: "banani-inside", party_size: 3, special_requests: "Seating: Inside (non-smoking)\nWindow seat please" });
+  await signIn(page);
+  await rowFor(page, "Nadia Rahman").getByRole("button", { name: "View" }).click();
+  const panel = page.getByRole("dialog", { name: "Nadia Rahman" });
+  await expect(panel).toBeVisible();
+  await expect(panel.getByText("3 people")).toBeVisible();
+  await expect(panel.getByText("“Window seat please”")).toBeVisible();
+  await expect(panel.getByRole("button", { name: "Confirm" })).toBeVisible();
+  await expect(panel.getByRole("button", { name: "Decline" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
 });
 
 test("filters show one kind of booking at a time", async ({ page }) => {

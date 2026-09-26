@@ -1,4 +1,4 @@
-import { Playfair_Display, Sacramento } from "next/font/google";
+import { Sacramento, Young_Serif } from "next/font/google";
 import { HeroCarousel, type HeroSlideView } from "@/components/site/hero-carousel";
 import { pick } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/i18n/en";
@@ -8,10 +8,10 @@ import type { Locale, MenuCategory, ScheduleDay } from "@/lib/types";
 
 type Text = { en: string; bn: string };
 
-// The hero's own fonts, matching Saalim's reference design: a heavy high-contrast serif for the dish
-// name and price, and a thin handwritten script for the accent lines. Declared here rather than in the
-// root layout so only the home page downloads them.
-const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair", display: "swap" });
+// The hero's own fonts: a sturdy, friendly serif for the dish name and price (Young Serif, chosen by
+// Saalim on 26 September 2026 in place of Playfair Display), and a thin handwritten script for the
+// accent lines. Declared here rather than in the root layout so only the home page downloads them.
+const youngSerif = Young_Serif({ subsets: ["latin"], weight: "400", variable: "--font-hero-serif", display: "swap" });
 const sacramento = Sacramento({ subsets: ["latin"], weight: "400", variable: "--font-sacramento", display: "swap" });
 
 /**
@@ -86,7 +86,7 @@ export function HomeHero({ locale, t, menu, today }: { locale: Locale; t: Dictio
 
   return (
     <HeroCarousel
-      fontClassName={`${playfair.variable} ${sacramento.variable}`}
+      fontClassName={`${youngSerif.variable} ${sacramento.variable}`}
       slides={slides}
       bn={locale === "bn"}
       labels={{

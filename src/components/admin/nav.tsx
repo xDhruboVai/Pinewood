@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ExternalLink, LogOut, UserRound } from "lucide-react";
 import { signOut } from "@/actions/admin";
 import { Logo } from "@/components/site/logo";
 import type { StaffRole } from "@/lib/types";
@@ -25,7 +26,7 @@ export function AdminNav({ name, role }: { name: string; role: StaffRole }) {
   return (
     <header className="grain grain-dark sticky top-0 z-40 bg-pine-700 text-cream-100">
       {/* Phones: the links get their own row under the logo. */}
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 px-5 pt-3 pb-1 sm:h-20 sm:flex-nowrap sm:px-8 sm:py-0 lg:px-12">
+      <div className="mx-auto flex max-w-[90rem] flex-wrap items-center justify-between gap-x-6 px-5 pt-3 pb-1 sm:h-20 sm:flex-nowrap sm:px-8 sm:py-0 lg:px-12">
         <Link href="/admin/reservations" className="order-1 flex shrink-0 items-center">
           <Logo tone="light" subline="Staff" />
         </Link>
@@ -51,14 +52,20 @@ export function AdminNav({ name, role }: { name: string; role: StaffRole }) {
           ))}
         </nav>
 
-        <div className="order-4 hidden items-center gap-6 text-sm md:flex">
-          <span className="hidden text-cream-100/70 lg:inline">{name}</span>
-          <Link href="/" className="text-cream-100/70 hover:text-mustard-300">
+        {/* Who is signed in, the way back to the website, and signing out, with thin rules between. */}
+        <div className="order-4 hidden items-center divide-x divide-cream-100/20 text-sm md:flex">
+          <span className="hidden items-center gap-2 pr-5 text-cream-100/85 lg:inline-flex">
+            <UserRound aria-hidden className="size-4" strokeWidth={1.75} />
+            {name}
+          </span>
+          <Link href="/" className="inline-flex items-center gap-2 px-5 text-cream-100/85 transition-colors hover:text-mustard-300">
             View the website
+            <ExternalLink aria-hidden className="size-3.5" strokeWidth={1.75} />
           </Link>
-          <form action={signOut}>
-            <button type="submit" className="text-cream-100/70 hover:text-mustard-300">
+          <form action={signOut} className="pl-5">
+            <button type="submit" className="inline-flex items-center gap-2 text-cream-100/85 transition-colors hover:text-mustard-300">
               Sign out
+              <LogOut aria-hidden className="size-3.5" strokeWidth={1.75} />
             </button>
           </form>
         </div>

@@ -71,6 +71,10 @@
   --animate-steam: steam 4s ease-in-out infinite;
   --animate-twinkle: twinkle 3.2s ease-in-out infinite;
   --animate-rise: rise 0.9s var(--ease-soft) both;
+  /* The home page dish showcase (dish-cards.tsx): the row holds the dishes twice and slides by one
+     copy's width, left to right, so the loop never shows a seam. The row sets its own
+     animation-duration from the number of dishes; 60s is only the fallback. */
+  --animate-roll-right: roll-right 60s linear infinite;
 
   @keyframes flicker {
     0%, 100% { transform: scaleY(1) skewX(0deg); opacity: 0.95; }
@@ -90,6 +94,10 @@
   @keyframes rise {
     from { opacity: 0; transform: translateY(14px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes roll-right {
+    from { transform: translateX(-50%); }
+    to { transform: translateX(0); }
   }
 }
 
@@ -164,11 +172,12 @@
 }
 
 /* Uppercase practical labels */
-/* Home hero and navigation (reference design): heavy serif, thin hand script, wide-tracked sans.
-   Playfair and Sacramento are loaded by the home hero only (home-hero.tsx), not on every page. */
+/* Home hero and navigation (reference design): sturdy serif, thin hand script, wide-tracked sans.
+   Young Serif and Sacramento are loaded by the home hero only (home-hero.tsx), not on every page.
+   Young Serif has one weight (400); a heavier weight here would make the browser fake a bold. */
 @utility hero-serif {
-  font-family: var(--font-playfair), var(--font-taka-serif), var(--font-bn-serif), Georgia, serif;
-  font-weight: 600;
+  font-family: var(--font-hero-serif), var(--font-taka-serif), var(--font-bn-serif), Georgia, serif;
+  font-weight: 400;
   letter-spacing: -0.015em;
 }
 @utility hand {
