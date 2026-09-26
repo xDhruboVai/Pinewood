@@ -10,8 +10,8 @@ const db = vi.hoisted(() => ({
   calls: [] as { table: string; op: string; args: unknown[] }[],
 }));
 const jar = vi.hoisted(() => new Map<string, string>());
-const staff = vi.hoisted(() => ({ current: null as null | { userId: string; email: string; fullName: string; role: "manager" | "foh" } }));
-const cache = vi.hoisted(() => ({ updateTag: vi.fn(), revalidatePath: vi.fn() }));
+const staff = vi.hoisted(() => ({ current: null as null | { userId: string; email: string; fullName: string; role: "owner" | "manager" | "foh"; branchId?: string | null } }));
+const cache = vi.hoisted(() => ({ updateTag: vi.fn(), revalidateTag: vi.fn(), revalidatePath: vi.fn() }));
 
 // A chainable stand-in for the Supabase query builder: records every call, resolves to db.rows[table].
 function table(name: string) {
@@ -169,7 +169,8 @@ describe("guest link actions (pre-order, cancellation request)", () => {
 
 describe("admin actions: authorisation and validation", () => {
   const foh = { userId: "u1", email: "f@x", fullName: "F", role: "foh" as const };
-  const manager = { ...foh, role: "manager" as const };
+  const manager = { ...foh, role: "manager" as const, branchId: "33333333-3333-4333-8333-333333333333" };
+  const owner = { ...foh, role: "owner" as const };
 
   it("tells a signed-out user their session ended, for every action, without touching the database", async () => {
     const calls = [
@@ -225,20 +226,80 @@ describe("admin actions: authorisation and validation", () => {
   });
 
   it.each([0, -5, 100001, 12.345, Number.NaN, Number.POSITIVE_INFINITY, "500" as unknown as number])("refuses price %s without saving", async (price) => {
-    staff.current = manager;
+    staff.current = owner;
     expect(await admin.updateMenuItem(ITEM, { price })).toEqual({ ok: false, error: "Enter a price above ৳0 (up to ৳100,000, at most 2 decimals)." });
     expect(db.calls).toEqual([]);
   });
 
-  it("saves a valid price and expires the public menu cache", async () => {
-    staff.current = manager;
+  it("saves a valid price and invalidates the public menu cache", async () => {
+    staff.current = owner;
     expect(await admin.updateMenuItem(ITEM, { price: 12.3 })).toEqual({ ok: true, data: undefined });
     expect(db.calls.find((c) => c.op === "update")?.args[0]).toEqual({ price: 12.3 });
     expect(cache.updateTag).toHaveBeenCalledWith("menu");
   });
 
-  it("ignores unknown fields in a menu update and refuses an empty one", async () => {
+  it("blocks managers from changing global menu defaults", async () => {
     staff.current = manager;
+    expect(await admin.updateMenuItem(ITEM, { price: 500 })).toEqual({ ok: false, error: "Only owners can change the global menu." });
+    expect(db.calls).toEqual([]);
+  });
+
+  it("writes a manager edit only through their assigned branch", async () => {
+    staff.current = manager;
+    db.rpc.mockResolvedValue({ data: null, error: null });
+    expect(await admin.updateBranchMenuItem(ITEM, { price: 700, is_available: false })).toEqual({ ok: true, data: undefined });
+    expect(db.rpc).toHaveBeenCalledWith("admin_set_branch_menu_item", {
+      p_branch_id: manager.branchId,
+      p_item_id: ITEM,
+      p_set_price: true,
+      p_price: 700,
+      p_set_availability: true,
+      p_is_available: false,
+    });
+    expect(cache.updateTag).toHaveBeenCalledWith("menu");
+  });
+
+  it("binds staff-directory writes to the signed-in manager branch", async () => {
+    staff.current = manager;
+    db.rpc.mockResolvedValue({ data: "44444444-4444-4444-8444-444444444444", error: null });
+    const result = await admin.saveBranchStaff({
+      fullName: "Rafi Ahmed",
+      jobTitle: "Side chef",
+      email: "",
+      phone: "",
+      notes: "Evening shift",
+      isActive: true,
+      branchId: "55555555-5555-4555-8555-555555555555",
+    });
+    expect(result).toEqual({ ok: true, data: { id: "44444444-4444-4444-8444-444444444444" } });
+    expect(db.rpc).toHaveBeenCalledWith("manager_upsert_branch_staff", expect.objectContaining({
+      p_branch_id: manager.branchId,
+      p_job_title: "Side chef",
+    }));
+  });
+
+  it("does not allow a manager to appoint managers or assign branches", async () => {
+    staff.current = manager;
+    expect(await admin.updateStaffMember("22222222-2222-4222-8222-222222222222", { role: "manager", branch_id: "33333333-3333-4333-8333-333333333333" })).toEqual({
+      ok: false,
+      error: "Only owners can change managerial roles or branch assignments.",
+    });
+    expect(db.rpc).not.toHaveBeenCalled();
+  });
+
+  it("lets an owner update another staff member through the guarded database function", async () => {
+    staff.current = { ...manager, role: "owner" };
+    db.rpc.mockResolvedValue({ data: null, error: null });
+    expect(await admin.updateStaffMember("22222222-2222-4222-8222-222222222222", { role: "manager", branch_id: "33333333-3333-4333-8333-333333333333" })).toEqual({ ok: true, data: undefined });
+    expect(db.rpc).toHaveBeenCalledWith("admin_update_staff", expect.objectContaining({
+      p_role: "manager",
+      p_branch_id: "33333333-3333-4333-8333-333333333333",
+      p_set_branch: true,
+    }));
+  });
+
+  it("ignores unknown fields in a menu update and refuses an empty one", async () => {
+    staff.current = owner;
     expect(await admin.updateMenuItem(ITEM, { name_en: "Free food" } as never)).toEqual({ ok: false, error: "Nothing to update." });
     expect(db.calls).toEqual([]);
   });

@@ -8,14 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/form";
 import { relativeFromNow } from "./ui";
 import { cn } from "@/lib/utils";
-import type { StaffProfile, StaffRole } from "@/lib/types";
+import type { Branch, StaffProfile, StaffRole } from "@/lib/types";
 
 export type StaffRow = StaffProfile & { email: string; lastSignIn: string | null; isMe: boolean };
 
-export function StaffManager({ rows }: { rows: StaffRow[] }) {
+export function StaffManager({ rows, branches, canManageManagers }: { rows: StaffRow[]; branches: Branch[]; canManageManagers: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [form, setForm] = useState({ fullName: "", email: "", role: "foh" as StaffRole });
+  const [form, setForm] = useState({ fullName: "", email: "", role: "foh" as StaffRole, branchId: "" });
 
   const run = (fn: () => ReturnType<typeof inviteStaff>, msg: string, after?: () => void) =>
     start(async () => {
@@ -36,6 +36,7 @@ export function StaffManager({ rows }: { rows: StaffRow[] }) {
             <tr>
               <th className="px-4 pb-1 font-normal">Name</th>
               <th className="px-4 pb-1 font-normal">Role</th>
+              <th className="px-4 pb-1 font-normal">Branch</th>
               <th className="hidden px-4 pb-1 font-normal md:table-cell">Last signed in</th>
               <th className="px-4 pb-1 text-right font-normal">
                 <span className="sr-only">Access</span>
@@ -54,13 +55,34 @@ export function StaffManager({ rows }: { rows: StaffRow[] }) {
                 <td className="px-4 py-3">
                   <select
                     value={r.role}
-                    disabled={r.isMe || pending}
+                    disabled={r.isMe || pending || !canManageManagers}
                     onChange={(e) => run(() => updateStaffMember(r.user_id, { role: e.target.value as StaffRole }), "Role updated")}
                     className="h-8 rounded-md bg-canvas px-2 text-sm"
                     aria-label={`Role for ${r.full_name}`}
                   >
-                    <option value="manager">Manager</option>
-                    <option value="foh">Front of house</option>
+                    {canManageManagers ? (
+                      <>
+                        <option value="owner">Owner</option>
+                        <option value="manager">Manager</option>
+                        <option value="foh">Front of house</option>
+                      </>
+                    ) : (
+                      <option value={r.role}>{r.role === "foh" ? "Front of house" : r.role === "manager" ? "Manager" : "Owner"}</option>
+                    )}
+                  </select>
+                </td>
+                <td className="px-4 py-3">
+                  <select
+                    value={r.branch_id ?? ""}
+                    disabled={pending || !canManageManagers || !["manager", "owner"].includes(r.role)}
+                    onChange={(e) => run(() => updateStaffMember(r.user_id, { branch_id: e.target.value || null }), "Branch updated")}
+                    className="h-8 rounded-md bg-canvas px-2 text-sm"
+                    aria-label={`Branch for ${r.full_name}`}
+                  >
+                    <option value="">All branches</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>{b.name_en}</option>
+                    ))}
                   </select>
                 </td>
                 <td className="hidden px-4 py-3 text-ink-muted md:table-cell">{r.lastSignIn ? relativeFromNow(r.lastSignIn) : "Never"}</td>
@@ -68,7 +90,7 @@ export function StaffManager({ rows }: { rows: StaffRow[] }) {
                   <Button
                     size="sm"
                     variant={r.is_active ? "ghost" : "outline"}
-                    disabled={r.isMe || pending}
+                    disabled={r.isMe || pending || (!canManageManagers && r.role !== "foh")}
                     onClick={() => run(() => updateStaffMember(r.user_id, { is_active: !r.is_active }), r.is_active ? "Access removed" : "Access restored")}
                   >
                     {r.is_active ? "Deactivate" : "Reactivate"}
@@ -87,7 +109,7 @@ export function StaffManager({ rows }: { rows: StaffRow[] }) {
           className="mt-5 space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
-            run(() => inviteStaff(form), `Invitation sent to ${form.email}`, () => setForm({ fullName: "", email: "", role: "foh" }));
+            run(() => inviteStaff({ ...form, branchId: form.branchId || null }), `Invitation sent to ${form.email}`, () => setForm({ fullName: "", email: "", role: "foh", branchId: "" }));
           }}
         >
           <Field label="Full name" htmlFor="s-name">
@@ -99,9 +121,20 @@ export function StaffManager({ rows }: { rows: StaffRow[] }) {
           <Field label="Role" htmlFor="s-role">
             <Select id="s-role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as StaffRole })}>
               <option value="foh">Front of house</option>
-              <option value="manager">Manager</option>
+              {canManageManagers ? <option value="manager">Manager</option> : null}
+              {canManageManagers ? <option value="owner">Owner</option> : null}
             </Select>
           </Field>
+          {canManageManagers ? (
+            <Field label="Branch" htmlFor="s-branch">
+              <Select id="s-branch" value={form.branchId} required={form.role === "manager"} onChange={(e) => setForm({ ...form, branchId: e.target.value })}>
+                <option value="">All branches</option>
+                {branches.map((branch) => (
+                  <option key={branch.id} value={branch.id}>{branch.name_en}</option>
+                ))}
+              </Select>
+            </Field>
+          ) : null}
           <Button type="submit" variant="pine" disabled={pending} className="w-full">
             Send invitation
           </Button>

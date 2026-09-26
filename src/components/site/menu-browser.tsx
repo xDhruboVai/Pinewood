@@ -1,12 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useI18n, pickClient } from "@/lib/i18n/client";
 import { formatPrice } from "@/lib/format";
 import { PHOTOS, type PhotoName } from "@/lib/site";
 import { cn } from "@/lib/utils";
-import type { MenuCategory, MenuItem, MenuSection, MenuTag } from "@/lib/types";
+import type { Branch, MenuCategory, MenuItem, MenuSection, MenuTag } from "@/lib/types";
 
 const FILTERS: (MenuTag | "all")[] = ["all", "halal", "vegetarian", "chef_special"];
 const SECTIONS: MenuSection[] = ["starters", "mains", "coffee", "desserts", "beverages"];
@@ -33,7 +34,7 @@ const SECTION_PHOTOS: Partial<Record<MenuSection, { name: PhotoName; soft?: bool
   desserts: [{ name: "oreoCheesecakeReal" }, { name: "brownieReal" }, { name: "redVelvet", soft: true }],
 };
 
-export function MenuBrowser({ menu }: { menu: MenuCategory[] }) {
+export function MenuBrowser({ menu, branches, selectedBranchId }: { menu: MenuCategory[]; branches: Branch[]; selectedBranchId: string | null }) {
   const { locale, t } = useI18n();
   const [filter, setFilter] = useState<MenuTag | "all">("all");
 
@@ -51,6 +52,21 @@ export function MenuBrowser({ menu }: { menu: MenuCategory[] }) {
   return (
     <div className="grain grain-dark bg-pine-700 text-cream-100">
       <div className="sticky top-20 z-30 bg-pine-900/95 backdrop-blur">
+        <nav aria-label={locale === "bn" ? "শাখা" : "Menu branch"} className="no-scrollbar mx-auto flex max-w-7xl gap-6 overflow-x-auto px-5 pt-3.5 sm:px-8 lg:px-12">
+          {branches.map((branch) => (
+            <Link
+              key={branch.id}
+              href={`/menu?branch=${encodeURIComponent(branch.slug)}`}
+              aria-current={branch.id === selectedBranchId ? "page" : undefined}
+              className={cn(
+                "shrink-0 border-b-2 pb-2 text-sm transition-colors",
+                branch.id === selectedBranchId ? "border-mustard-400 text-mustard-300" : "border-transparent text-cream-100/65 hover:text-cream-50",
+              )}
+            >
+              {locale === "bn" ? branch.name_bn : branch.name_en}
+            </Link>
+          ))}
+        </nav>
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-3.5 sm:px-8 md:flex-row md:items-center md:justify-between lg:px-12">
           <nav aria-label={t.nav.menu} className="no-scrollbar -mx-5 flex gap-7 overflow-x-auto px-5 md:mx-0 md:px-0">
             {grouped.map(({ section }) => (

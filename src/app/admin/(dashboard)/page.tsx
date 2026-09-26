@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
+import { requireStaff } from "@/lib/auth";
 
-// The admin opens on Reservations (the overview page was dropped, September 2026).
-export default function AdminHome() {
+export default async function AdminHome() {
+  await requireStaff();
   redirect("/admin/reservations");
 }

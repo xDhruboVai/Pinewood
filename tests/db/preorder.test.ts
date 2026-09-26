@@ -1,16 +1,19 @@
 // Pre-orders (upsert_pre_order): prices always come from the menu, never from the browser; items,
 // quantities and the cut-off are enforced; saved lines keep a snapshot of what was ordered.
 // The dishes below are TEST FIXTURES with known prices.
-import { beforeAll, describe, expect, it } from "vitest";
-import { book, dhaka, pwError, setStatus, standardFixture, openTestDb } from "./helpers";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { book, dhaka, pwError, setStatus, staffUser, standardFixture, openTestDb } from "./helpers";
 
 const db = openTestDb();
 let A: Record<string, string>;
+let B: Record<string, string>;
 let dish: string, off: string, other: string;
 let large: string, cheese: string, otherAddon: string;
 
 beforeAll(async () => {
-  A = (await standardFixture(db)).areas;
+  const fixture = await standardFixture(db);
+  A = fixture.areas;
+  B = fixture.branches;
   const [cat] = await db.q<{ id: string }>("select id from public.menu_categories order by sort_order limit 1");
   const item = async (slug: string, price: number, available = true) =>
     (
@@ -28,9 +31,13 @@ beforeAll(async () => {
   otherAddon = (await db.q<{ id: string }>("insert into public.menu_item_addons (item_id, name_en, name_bn, price, sort_order) values ($1, 'Sauce', 'Sauce', 30, 1) returning id", [other]))[0].id;
 });
 
+beforeEach(async () => {
+  await db.q("delete from public.menu_item_branch_overrides");
+});
+
 let n = 0;
-async function confirmedBooking() {
-  const b = await book(db, { area: A.d27, start: dhaka(2 + (n % 20), `${12 + (Math.floor(n++ / 20) % 8)}:00`), party: 2 });
+async function confirmedBooking(area = A.d27) {
+  const b = await book(db, { area, start: dhaka(2 + (n % 20), `${12 + (Math.floor(n++ / 20) % 8)}:00`), party: 2 });
   await setStatus(db, b.id, "confirmed");
   return b.id;
 }
@@ -56,6 +63,24 @@ describe("prices are computed by the database", () => {
     expect(lines[0]).toMatchObject({ item_name: "test-dish", variant_name: "Large", addon_names: ["Cheese"], quantity: 2 });
     expect(Number(lines[0].unit_price)).toBe(650);
   });
+  it("uses the reservation branch's price without changing other branches", async () => {
+    const branchManager = await staffUser(db, "manager");
+    await db.q("update public.staff_profiles set branch_id = $2 where user_id = $1", [branchManager, B["dhanmondi-27"]]);
+    await db.as(
+      "authenticated",
+      "select public.admin_set_branch_menu_item($1, $2, true, 725, false, null)",
+      [B["dhanmondi-27"], dish],
+      branchManager,
+    );
+
+    const road27 = await confirmedBooking(A.d27);
+    await save(road27, [{ item_id: dish, quantity: 1 }]);
+    expect(Number((await order(road27)).lines[0].unit_price)).toBe(725);
+
+    const road6 = await confirmedBooking(A.d6);
+    await save(road6, [{ item_id: dish, quantity: 1 }]);
+    expect(Number((await order(road6)).lines[0].unit_price)).toBe(500);
+  });
   it("ignores any price the browser sends", async () => {
     const r = await confirmedBooking();
     await save(r, [{ item_id: dish, quantity: 1, price: 1, unit_price: 1, line_total: 1, total: 1 }]);
@@ -75,6 +100,24 @@ describe("prices are computed by the database", () => {
 });
 
 describe("items and quantities", () => {
+  it("uses branch availability for preorder eligibility", async () => {
+    const branchManager = await staffUser(db, "manager");
+    await db.q("update public.staff_profiles set branch_id = $2 where user_id = $1", [branchManager, B["dhanmondi-27"]]);
+    await db.as(
+      "authenticated",
+      "select public.admin_set_branch_menu_item($1, $2, false, null, true, true)",
+      [B["dhanmondi-27"], off],
+      branchManager,
+    );
+
+    const road27 = await confirmedBooking(A.d27);
+    await save(road27, [{ item_id: off, quantity: 1 }]);
+    expect(Number((await order(road27)).po.total)).toBe(300);
+
+    const road6 = await confirmedBooking(A.d6);
+    await expect(save(road6, [{ item_id: off, quantity: 1 }])).rejects.toThrow(pwError("PW_ITEM_UNAVAILABLE"));
+  });
+
   it("refuses a sold-out or unknown dish", async () => {
     const r = await confirmedBooking();
     await expect(save(r, [{ item_id: off, quantity: 1 }])).rejects.toThrow(pwError("PW_ITEM_UNAVAILABLE"));

@@ -26,7 +26,7 @@ interface ReservationView {
   customer_name: string;
   token_version: number;
   cancel_requested_at: string | null;
-  area: { name_en: string; name_bn: string } | null;
+  area: { name_en: string; name_bn: string; branch_id: string | null } | null;
   // One-to-one embed: PostgREST may return an object or a single-element array.
   pre_orders: PreOrderView[] | PreOrderView | null;
 }
@@ -62,7 +62,7 @@ async function loadReservation(token: string) {
   const { data } = await createAdminClient()
     .from("reservations")
     .select(
-      "id, reference, status, starts_at, ends_at, party_size, large_party, customer_name, token_version, cancel_requested_at, area:areas(name_en, name_bn), pre_orders(id, status, notes, total, pre_order_items(menu_item_id, variant_id, addon_ids, item_name, variant_name, addon_names, quantity, notes, line_total))",
+      "id, reference, status, starts_at, ends_at, party_size, large_party, customer_name, token_version, cancel_requested_at, area:areas(name_en, name_bn, branch_id), pre_orders(id, status, notes, total, pre_order_items(menu_item_id, variant_id, addon_ids, item_name, variant_name, addon_names, quantity, notes, line_total))",
     )
     .eq("id", verified.reservationId)
     .maybeSingle();
@@ -101,7 +101,7 @@ export default async function ReservationPage({ params }: { params: Promise<{ to
   const isActive = reservation.status === "pending" || reservation.status === "confirmed";
   const canCancel = isActive && new Date(reservation.starts_at).getTime() > Date.now();
 
-  const menu = canPreOrder ? await getMenu() : [];
+  const menu = canPreOrder ? await getMenu(reservation.area?.branch_id ?? null) : [];
   const initialLines: CartLine[] = (activePreOrder?.pre_order_items ?? [])
     .filter((i) => i.menu_item_id)
     .map((i) => ({

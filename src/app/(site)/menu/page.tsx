@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { MenuBrowser } from "@/components/site/menu-browser";
-import { getMenu } from "@/lib/data";
+import { getBranches, getMenu } from "@/lib/data";
 import { getI18n } from "@/lib/i18n";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -8,9 +8,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t.nav.menu, description: t.menu.lede };
 }
 
-export default async function MenuPage() {
-  const { t } = await getI18n();
-  const menu = await getMenu();
+export default async function MenuPage({ searchParams }: { searchParams: Promise<{ branch?: string }> }) {
+  const [{ t }, branches, params] = await Promise.all([getI18n(), getBranches(), searchParams]);
+  const selectedBranch = branches.find((branch) => branch.slug === params.branch) ?? branches[0] ?? null;
+  const menu = await getMenu(selectedBranch?.id ?? null);
 
   return (
     <>
@@ -21,7 +22,7 @@ export default async function MenuPage() {
           <p className="mt-4 max-w-xl leading-relaxed text-cream-100/75">{t.menu.lede}</p>
         </div>
       </section>
-      <MenuBrowser menu={menu} />
+      <MenuBrowser menu={menu} branches={branches} selectedBranchId={selectedBranch?.id ?? null} />
     </>
   );
 }

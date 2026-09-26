@@ -16,7 +16,7 @@ export type MenuSection = "starters" | "mains" | "coffee" | "desserts" | "bevera
 
 export type MenuTag = "halal" | "vegetarian" | "chef_special" | "spicy" | "seafood" | "contains_nuts";
 
-export type StaffRole = "manager" | "foh";
+export type StaffRole = "owner" | "manager" | "foh";
 
 export interface Branch {
   id: string;
@@ -26,6 +26,18 @@ export interface Branch {
   name_bn: string;
   is_active: boolean;
   sort_order: number;
+}
+
+export interface BranchStaff {
+  id: string;
+  branch_id: string;
+  full_name: string;
+  job_title: string;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  is_active: boolean;
+  updated_at: string;
 }
 
 export type Seating = "inside" | "outside";
@@ -81,6 +93,10 @@ export interface MenuItem {
   description_en: string | null;
   description_bn: string | null;
   price: number;
+  global_price?: number;
+  global_is_available?: boolean;
+  price_overridden?: boolean;
+  availability_overridden?: boolean;
   image_url: string | null;
   tags: MenuTag[];
   is_available: boolean;
@@ -229,6 +245,7 @@ export interface StaffProfile {
   user_id: string;
   full_name: string;
   role: StaffRole;
+  branch_id: string | null;
   is_active: boolean;
 }
 

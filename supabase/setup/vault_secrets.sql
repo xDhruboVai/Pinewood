@@ -12,13 +12,13 @@
 -- (supabase secrets set). Generate one with:  openssl rand -hex 32
 
 select vault.create_secret(
-  'https://YOUR-RENDER-SERVICE.onrender.com',
+  'https://pinewood-byr3.onrender.com',
   'pinewood_functions_url',
   'Base URL that receives the reservation-email webhook'
 );
 
 select vault.create_secret(
-  'REPLACE-WITH-A-LONG-RANDOM-SECRET',
+  'b2587d15b3c826a565ffc7fea8bc07553dd5625928642d1c0863e95fc0d35f1a',
   'pinewood_webhook_secret',
   'Shared secret sent as x-webhook-secret to reservation-email'
 );

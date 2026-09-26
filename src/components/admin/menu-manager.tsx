@@ -3,13 +3,14 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Search } from "lucide-react";
-import { updateMenuItem } from "@/actions/admin";
+import { RotateCcw, Search } from "lucide-react";
+import { updateBranchMenuItem, updateMenuItem } from "@/actions/admin";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import type { MenuCategory, MenuItem } from "@/lib/types";
 
-export function MenuManager({ menu }: { menu: MenuCategory[] }) {
+export function MenuManager({ menu, branchMode = false }: { menu: MenuCategory[]; branchMode?: boolean }) {
   const [query, setQuery] = useState("");
   const [onlyOut, setOnlyOut] = useState(false);
   const q = query.trim().toLowerCase();
@@ -40,7 +41,7 @@ export function MenuManager({ menu }: { menu: MenuCategory[] }) {
               </h2>
               <ul className="mt-4 space-y-1">
                 {items.map((item) => (
-                  <MenuItemRow key={item.id} item={item} />
+                  <MenuItemRow key={item.id} item={item} branchMode={branchMode} />
                 ))}
               </ul>
             </section>
@@ -51,21 +52,30 @@ export function MenuManager({ menu }: { menu: MenuCategory[] }) {
   );
 }
 
-function MenuItemRow({ item }: { item: MenuItem }) {
+type BranchMenuPatch = { price?: number | null; is_available?: boolean | null };
+type GlobalMenuPatch = Parameters<typeof updateMenuItem>[1];
+
+function MenuItemRow({ item, branchMode }: { item: MenuItem; branchMode: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [price, setPrice] = useState(String(item.price));
   const [savedPrice, setSavedPrice] = useState(Number(item.price));
   const [priceInvalid, setPriceInvalid] = useState(false);
 
-  const save = (patch: Parameters<typeof updateMenuItem>[1], msg: string) =>
+  const save = (patch: BranchMenuPatch | GlobalMenuPatch, msg: string) =>
     start(async () => {
-      const res = await updateMenuItem(item.id, patch);
+      const res = branchMode
+        ? await updateBranchMenuItem(item.id, patch as BranchMenuPatch)
+        : await updateMenuItem(item.id, patch as GlobalMenuPatch);
       if (!res.ok) {
         toast.error(res.error);
         if (patch.price !== undefined) setPrice(String(savedPrice));
       } else {
-        if (patch.price !== undefined) setSavedPrice(patch.price);
+        if (patch.price !== undefined) {
+          const nextPrice = patch.price ?? item.global_price ?? item.price;
+          setSavedPrice(nextPrice);
+          setPrice(String(nextPrice));
+        }
         toast.success(msg);
         router.refresh();
       }
@@ -95,7 +105,7 @@ function MenuItemRow({ item }: { item: MenuItem }) {
           {item.menu_item_addons.length ? ` · ${item.menu_item_addons.length} add-ons` : ""}
         </p>
       </div>
-      <button
+      {!branchMode ? <button
         type="button"
         aria-pressed={item.is_featured}
         title="Show this dish on the home page"
@@ -104,9 +114,9 @@ function MenuItemRow({ item }: { item: MenuItem }) {
         className={cn("w-24 text-left text-xs transition-colors", item.is_featured ? "font-medium text-accent-ink" : "text-ink-muted/70 hover:text-ink")}
       >
         {item.is_featured ? "On home page" : "Add to home"}
-      </button>
+      </button> : null}
       <form
-        className="flex items-center gap-1"
+        className="flex items-center gap-2"
         onSubmit={(e) => {
           e.preventDefault();
           commitPrice();
@@ -123,11 +133,16 @@ function MenuItemRow({ item }: { item: MenuItem }) {
             setPrice(e.target.value);
             setPriceInvalid(false);
           }}
-          onBlur={commitPrice}
           aria-invalid={priceInvalid}
           className={cn("h-8 w-20 bg-transparent px-2 text-sm", priceInvalid && "border-danger")}
           aria-label={`${item.name_en} price`}
         />
+        <Button type="submit" size="sm" variant="outline" disabled={pending} className="h-8 px-2.5 text-xs">Save</Button>
+        {branchMode && item.price_overridden ? (
+          <Button type="button" size="icon" variant="ghost" title="Use global price" aria-label={`Reset ${item.name_en} price to global`} disabled={pending} onClick={() => save({ price: null }, "Using global price")}>
+            <RotateCcw />
+          </Button>
+        ) : null}
       </form>
       <button
         type="button"
@@ -144,6 +159,11 @@ function MenuItemRow({ item }: { item: MenuItem }) {
           <span className="font-semibold text-danger hover:text-ink">Off · put back</span>
         )}
       </button>
+      {branchMode && item.availability_overridden ? (
+        <Button type="button" size="icon" variant="ghost" title="Use global availability" aria-label={`Reset ${item.name_en} availability to global`} disabled={pending} onClick={() => save({ is_available: null }, "Using global availability")}>
+          <RotateCcw />
+        </Button>
+      ) : null}
     </li>
   );
 }

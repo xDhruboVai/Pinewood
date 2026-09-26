@@ -32,16 +32,43 @@ function sortMenu(categories: MenuCategory[]) {
 // edits made straight in Supabase. Errors are never cached. Live availability, holds and bookings
 // are not in here: the booking form asks the database every time (get_availability, hold_slot).
 
-async function loadMenu(): Promise<MenuCategory[]> {
-  const { data, error } = await createPublicClient().from("menu_categories").select(MENU_SELECT);
+async function loadMenu(branchId: string | null = null): Promise<MenuCategory[]> {
+  const supabase = createPublicClient();
+  const { data, error } = await supabase.from("menu_categories").select(MENU_SELECT);
   if (error) throw error;
-  return sortMenu((data ?? []) as unknown as MenuCategory[]);
+  const menu = sortMenu((data ?? []) as unknown as MenuCategory[]);
+  if (!branchId) return menu;
+
+  const { data: overrides, error: overrideError } = await supabase
+    .from("menu_item_branch_overrides")
+    .select("menu_item_id, price, is_available")
+    .eq("branch_id", branchId);
+  if (overrideError) throw overrideError;
+  const overridesByItem = new Map((overrides ?? []).map((override) => [override.menu_item_id, override]));
+
+  return menu.map((category) => ({
+    ...category,
+    menu_items: category.menu_items.map((item) => {
+      const override = overridesByItem.get(item.id);
+      return {
+        ...item,
+        global_price: item.price,
+        global_is_available: item.is_available,
+        price: override?.price == null ? item.price : Number(override.price),
+        is_available: override?.is_available ?? item.is_available,
+        price_overridden: override?.price != null,
+        availability_overridden: override?.is_available != null,
+      };
+    }),
+  }));
 }
 
-export const getMenu = cache(unstable_cache(loadMenu, ["menu"], { tags: [CACHE_TAGS.menu], revalidate: PUBLIC_REVALIDATE }));
+const cachedMenu = unstable_cache(loadMenu, ["menu"], { tags: [CACHE_TAGS.menu], revalidate: PUBLIC_REVALIDATE });
+
+export const getMenu = cache((branchId: string | null = null): Promise<MenuCategory[]> => cachedMenu(branchId));
 
 /** The menu straight from the database, for the admin menu screen (never cached). */
-export const getMenuFresh = cache(loadMenu);
+export const getMenuFresh = cache(() => loadMenu());
 
 // These throw when the database can't be reached, like getMenu: the page then shows the branded
 // error screen (app/(site)/error.tsx) instead of quietly rendering with no hours or no tables.

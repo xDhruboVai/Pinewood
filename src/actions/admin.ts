@@ -18,6 +18,8 @@ const FRIENDLY: Record<string, string> = {
   PW_SLOT_FULL: "The 24h hold lapsed and the seats have been taken. Offer another time or add capacity.",
   PW_NOT_FOUND: "Reservation not found.",
   PW_NOT_DELETABLE: "Decline or cancel this booking before deleting it.",
+  PW_INVALID_PRICE: "Enter a price above ৳0 with at most 2 decimals.",
+  PW_INVALID_ITEMS: "Nothing to update.",
 };
 
 /** A database or auth error as a message for staff. Only known PW_ codes are shown; anything else
@@ -37,7 +39,7 @@ function fail(error: { message?: string } | null | undefined): ActionResult {
 async function staffCheck(managerOnly = false): Promise<{ ok: true; staff: StaffSession } | { ok: false; error: string }> {
   const staff = await getStaff();
   if (!staff) return { ok: false, error: "Your session has ended. Please sign in again." };
-  if (managerOnly && staff.role !== "manager") return { ok: false, error: "Only managers can do that." };
+  if (managerOnly && staff.role !== "manager" && staff.role !== "owner") return { ok: false, error: "Only managers can do that." };
   return { ok: true, staff };
 }
 
@@ -254,6 +256,8 @@ export async function updateMenuItem(
 ): Promise<ActionResult> {
   const auth = await staffCheck(true);
   if (!auth.ok) return auth;
+  if (auth.staff.role !== "owner") return { ok: false, error: "Only owners can change the global menu." };
+  if (!uuid.safeParse(id).success) return { ok: false, error: "Invalid menu item." };
   if (!patch || typeof patch !== "object") return { ok: false, error: "Invalid request" };
   const clean: Record<string, unknown> = {};
   if (typeof patch.is_available === "boolean") clean.is_available = patch.is_available;
@@ -279,13 +283,93 @@ export async function updateMenuItem(
   return { ok: true, data: undefined };
 }
 
+export async function updateBranchMenuItem(
+  id: string,
+  patch: { price?: number | null; is_available?: boolean | null },
+): Promise<ActionResult> {
+  const auth = await staffCheck();
+  if (!auth.ok) return auth;
+  if (auth.staff.role !== "manager" || !auth.staff.branchId) {
+    return { ok: false, error: "Only an assigned branch manager can change a branch menu." };
+  }
+  if (!uuid.safeParse(id).success || !patch || typeof patch !== "object") return { ok: false, error: "Invalid request." };
+
+  const setPrice = Object.hasOwn(patch, "price");
+  const setAvailability = Object.hasOwn(patch, "is_available");
+  if (!setPrice && !setAvailability) return { ok: false, error: "Nothing to update." };
+  if (setPrice && patch.price !== null) {
+    const cents = typeof patch.price === "number" ? patch.price * 100 : NaN;
+    if (typeof patch.price !== "number" || !Number.isFinite(patch.price) || patch.price <= 0 || patch.price > 100000 || Math.abs(Math.round(cents) - cents) > 1e-6) {
+      return { ok: false, error: "Enter a price above ৳0 (up to ৳100,000, at most 2 decimals)." };
+    }
+  }
+  if (setAvailability && patch.is_available !== null && typeof patch.is_available !== "boolean") {
+    return { ok: false, error: "Invalid availability." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_branch_menu_item", {
+    p_branch_id: auth.staff.branchId,
+    p_item_id: id,
+    p_set_price: setPrice,
+    p_price: patch.price ?? null,
+    p_set_availability: setAvailability,
+    p_is_available: patch.is_available ?? null,
+  });
+  if (error) return fail(error);
+  updateTag(CACHE_TAGS.menu);
+  revalidatePath("/menu");
+  revalidatePath("/admin/branch-menu");
+  return { ok: true, data: undefined };
+}
+
+const branchStaffSchema = z.object({
+  id: uuid.nullable().optional(),
+  fullName: z.string().trim().min(2).max(100),
+  jobTitle: z.string().trim().min(2).max(80),
+  email: z.string().trim().email().max(254).or(z.literal("")),
+  phone: z.string().trim().max(32),
+  notes: z.string().trim().max(1000),
+  isActive: z.boolean(),
+});
+
+export async function saveBranchStaff(input: unknown): Promise<ActionResult<{ id: string }>> {
+  const auth = await staffCheck();
+  if (!auth.ok) return auth;
+  if (auth.staff.role !== "manager" || !auth.staff.branchId) {
+    return { ok: false, error: "Only an assigned branch manager can manage branch staff." };
+  }
+  const parsed = branchStaffSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Check the staff name, job title, contact details and notes." };
+  const staff = parsed.data;
+  const { data, error } = await (await createClient()).rpc("manager_upsert_branch_staff", {
+    p_id: staff.id ?? null,
+    p_branch_id: auth.staff.branchId,
+    p_full_name: staff.fullName,
+    p_job_title: staff.jobTitle,
+    p_email: staff.email || null,
+    p_phone: staff.phone || null,
+    p_notes: staff.notes || null,
+    p_is_active: staff.isActive,
+  });
+  if (error) {
+    const result = fail(error);
+    return result.ok ? { ok: false, error: GENERIC } : result;
+  }
+  if (typeof data !== "string") return { ok: false, error: GENERIC };
+  revalidatePath("/manager/staff");
+  revalidatePath("/admin/staff");
+  return { ok: true, data: { id: data } };
+}
+
 // ---------------------------------------------------------------------------
 // Staff
 // ---------------------------------------------------------------------------
 const inviteSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   fullName: z.string().trim().min(2).max(80),
-  role: z.enum(["manager", "foh"]),
+  role: z.enum(["owner", "manager", "foh"]),
+  branchId: z.string().uuid().nullable().optional(),
 });
 
 export async function inviteStaff(input: unknown): Promise<ActionResult> {
@@ -293,6 +377,12 @@ export async function inviteStaff(input: unknown): Promise<ActionResult> {
   if (!auth.ok) return auth;
   const parsed = inviteSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Please enter a name, a valid email and a role." };
+  if (parsed.data.role !== "foh" && auth.staff.role !== "owner") {
+    return { ok: false, error: "Only owners can appoint managers or owners." };
+  }
+  if (parsed.data.role === "manager" && !parsed.data.branchId) {
+    return { ok: false, error: "Choose the branch this manager will oversee." };
+  }
 
   const admin = createAdminClient();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -304,23 +394,48 @@ export async function inviteStaff(input: unknown): Promise<ActionResult> {
 
   const { error: profileError } = await admin
     .from("staff_profiles")
-    .upsert({ user_id: data.user.id, full_name: parsed.data.fullName, role: parsed.data.role, is_active: true });
+    .upsert({
+      user_id: data.user.id,
+      full_name: parsed.data.fullName,
+      role: parsed.data.role,
+      branch_id: parsed.data.branchId ?? null,
+      is_active: true,
+    });
   if (profileError) return fail(profileError);
 
   revalidatePath("/admin/staff");
   return { ok: true, data: undefined };
 }
 
-export async function updateStaffMember(userId: string, patch: { role?: StaffRole; is_active?: boolean }): Promise<ActionResult> {
+export async function updateStaffMember(userId: string, patch: { role?: StaffRole; is_active?: boolean; branch_id?: string | null }): Promise<ActionResult> {
   const auth = await staffCheck(true);
   if (!auth.ok) return auth;
+  if (!patch || typeof patch !== "object") return { ok: false, error: "Invalid request." };
   const me = auth.staff;
   if (userId === me.userId) return { ok: false, error: "You can't change your own role or access." };
-  const clean: Record<string, unknown> = {};
-  if (patch.role === "manager" || patch.role === "foh") clean.role = patch.role;
-  if (typeof patch.is_active === "boolean") clean.is_active = patch.is_active;
+  if (!uuid.safeParse(userId).success) return { ok: false, error: "Invalid staff member." };
+  if (patch.role !== undefined && patch.role !== "owner" && patch.role !== "manager" && patch.role !== "foh") {
+    return { ok: false, error: "Invalid staff role." };
+  }
+  if (patch.is_active !== undefined && typeof patch.is_active !== "boolean") return { ok: false, error: "Invalid staff access." };
+  const branchId = patch.branch_id === "" ? null : patch.branch_id;
+  if (branchId !== undefined && branchId !== null && !uuid.safeParse(branchId).success) {
+    return { ok: false, error: "Invalid branch." };
+  }
+  if (auth.staff.role !== "owner" && (patch.role === "owner" || patch.role === "manager" || patch.branch_id !== undefined)) {
+    return { ok: false, error: "Only owners can change managerial roles or branch assignments." };
+  }
+  if (patch.role === undefined && patch.is_active === undefined && patch.branch_id === undefined) {
+    return { ok: false, error: "Nothing to update." };
+  }
   const supabase = await createClient();
-  const { error } = await supabase.from("staff_profiles").update(clean).eq("user_id", userId);
+  const { error } = await supabase.rpc("admin_update_staff", {
+    p_user_id: userId,
+    p_role: patch.role ?? null,
+    p_is_active: patch.is_active ?? null,
+    p_branch_id: branchId ?? null,
+    p_set_branch: patch.branch_id !== undefined,
+  });
   if (error) return fail(error);
   revalidatePath("/admin/staff");
   return { ok: true, data: undefined };

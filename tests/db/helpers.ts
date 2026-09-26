@@ -128,7 +128,7 @@ export async function book(db: TestDb, a: HoldArgs & { phone?: string; name?: st
 }
 
 /** Make a staff member (TEST user) and return their user id. */
-export async function staffUser(db: TestDb, role: "manager" | "foh" | null, active = true) {
+export async function staffUser(db: TestDb, role: "owner" | "manager" | "foh" | null, active = true) {
   const id = randomUUID();
   await db.q("insert into auth.users (id, email) values ($1, $2)", [id, `${id}@test.local`]);
   if (role) await db.q("insert into public.staff_profiles (user_id, full_name, role, is_active) values ($1, 'Test Staff', $2, $3)", [id, role, active]);

@@ -8,16 +8,20 @@ const db = openTestDb();
 let A: Record<string, string>;
 let reservation: string;
 let dish: string;
-let nobody: string, foh: string, manager: string, retired: string;
+let nobody: string, foh: string, manager: string, owner: string, retired: string;
+let branches: Record<string, string>;
 const DENIED = /permission denied/;
 
 beforeAll(async () => {
-  A = (await standardFixture(db)).areas;
+  const fixture = await standardFixture(db);
+  A = fixture.areas;
+  branches = fixture.branches;
   reservation = (await book(db, { area: A.d6, start: dhaka(3, "12:00") })).id;
   dish = (await db.q<{ id: string }>("select id from public.menu_items order by sort_order limit 1"))[0].id;
   nobody = await staffUser(db, null); // signed in, not staff
   foh = await staffUser(db, "foh");
   manager = await staffUser(db, "manager");
+  owner = await staffUser(db, "owner");
   retired = await staffUser(db, "manager", false);
 });
 
@@ -116,21 +120,137 @@ describe("front of house (foh)", () => {
 });
 
 describe("manager", () => {
-  it("can change menu prices and sees every staff profile", async () => {
+  it("cannot change global menu values and sees every staff profile", async () => {
+    const before = await price();
     await db.as("authenticated", "update public.menu_items set price = 777 where id = $1", [dish], manager);
-    expect(await price()).toBe(777);
+    expect(await price()).toBe(before);
     expect((await db.as("authenticated", "select user_id from public.staff_profiles", [], manager)).length).toBeGreaterThanOrEqual(3);
   });
-  it("can change another staff member's role or access, but not their own", async () => {
+  it("can override menu values only for the assigned branch", async () => {
+    await db.q("update public.staff_profiles set branch_id = $2 where user_id = $1", [manager, branches.banani]);
+    await expect(
+      db.as(
+        "authenticated",
+        "select public.admin_set_branch_menu_item($1, $2, true, 444, false, null)",
+        [branches.d6, dish],
+        manager,
+      ),
+    ).rejects.toThrow(pwError("PW_FORBIDDEN"));
+    await db.as(
+      "authenticated",
+      "select public.admin_set_branch_menu_item($1, $2, true, 444, true, false)",
+      [branches.banani, dish],
+      manager,
+    );
+    expect((await db.q("select price, is_available from public.menu_item_branch_overrides where menu_item_id = $1 and branch_id = $2", [dish, branches.banani]))[0]).toMatchObject({
+      price: "444.00",
+      is_available: false,
+    });
+    expect(await price()).not.toBe(444);
+  });
+  it("can change front-of-house access but cannot directly edit or appoint managers", async () => {
     const other = await staffUser(db, "foh");
-    await db.as("authenticated", "update public.staff_profiles set role = 'manager' where user_id = $1", [other], manager);
-    expect((await db.q("select role from public.staff_profiles where user_id = $1", [other]))[0].role).toBe("manager");
+    await expect(db.as("authenticated", "update public.staff_profiles set role = 'manager' where user_id = $1", [other], manager)).rejects.toThrow(DENIED);
+    await expect(
+      db.as("authenticated", "select public.admin_update_staff($1, 'manager'::public.staff_role, null, null, false)", [other], manager),
+    ).rejects.toThrow(pwError("PW_FORBIDDEN"));
+    await db.as("authenticated", "select public.admin_update_staff($1, null, false, null, false)", [other], manager);
+    expect((await db.q("select is_active from public.staff_profiles where user_id = $1", [other]))[0].is_active).toBe(false);
     await db.as("authenticated", "update public.staff_profiles set is_active = false where user_id = $1", [manager], manager);
     expect((await db.q("select is_active from public.staff_profiles where user_id = $1", [manager]))[0].is_active).toBe(true);
-    await expect(db.as("authenticated", "update public.staff_profiles set user_id = $1 where user_id = $2", [nobody, other], manager)).rejects.toThrow(DENIED);
+  });
+  it("lets owners appoint managers to branches and remove the appointment", async () => {
+    const other = await staffUser(db, "foh");
+    await db.as(
+      "authenticated",
+      "select public.admin_update_staff($1, 'manager'::public.staff_role, null, $2, true)",
+      [other, branches.banani],
+      owner,
+    );
+    expect((await db.q("select role, branch_id from public.staff_profiles where user_id = $1", [other]))[0]).toMatchObject({
+      role: "manager",
+      branch_id: branches.banani,
+    });
+    await db.as(
+      "authenticated",
+      "select public.admin_update_staff($1, 'foh'::public.staff_role, null, null, true)",
+      [other],
+      owner,
+    );
+    expect((await db.q("select role, branch_id from public.staff_profiles where user_id = $1", [other]))[0]).toMatchObject({
+      role: "foh",
+      branch_id: null,
+    });
   });
   it("still cannot call the server-only booking functions directly", async () => {
     for (const [sql, id] of bookingCalls) await expect(db.as("authenticated", sql, [id()], manager), sql).rejects.toThrow(DENIED);
+  });
+});
+
+describe("owner", () => {
+  it("can change the global menu default while branch overrides remain separate", async () => {
+    const branchManager = await staffUser(db, "manager");
+    await db.q("update public.staff_profiles set branch_id = $2 where user_id = $1", [branchManager, branches.banani]);
+    await db.as(
+      "authenticated",
+      "select public.admin_set_branch_menu_item($1, $2, true, 444, false, null)",
+      [branches.banani, dish],
+      branchManager,
+    );
+    await db.as("authenticated", "update public.menu_items set price = 777 where id = $1", [dish], owner);
+    expect(await price()).toBe(777);
+    expect((await db.q("select price from public.menu_item_branch_overrides where menu_item_id = $1 and branch_id = $2", [dish, branches.banani]))[0].price).toBe("444.00");
+  });
+});
+
+describe("branch staff directory", () => {
+  it("lets a manager add, update and deactivate records only in their own branch", async () => {
+    const branchManager = await staffUser(db, "manager");
+    await db.q("update public.staff_profiles set branch_id = $2 where user_id = $1", [branchManager, branches.banani]);
+    const [created] = await db.as<{ id: string }>(
+      "authenticated",
+      "select public.manager_upsert_branch_staff(null, $1, 'Rafi Ahmed', 'Side chef', null, '01700000000', 'Evening prep', true) as id",
+      [branches.banani],
+      branchManager,
+    );
+    expect((await db.q("select full_name, job_title, is_active from public.branch_staff where id = $1", [created.id]))[0]).toMatchObject({
+      full_name: "Rafi Ahmed",
+      job_title: "Side chef",
+      is_active: true,
+    });
+
+    await expect(
+      db.as(
+        "authenticated",
+        "select public.manager_upsert_branch_staff($1, $2, 'Rafi Ahmed', 'Waiter', null, null, null, true)",
+        [created.id, branches["dhanmondi-6"]],
+        branchManager,
+      ),
+    ).rejects.toThrow(pwError("PW_FORBIDDEN"));
+
+    await db.as(
+      "authenticated",
+      "select public.manager_upsert_branch_staff($1, $2, 'Rafi Ahmed', 'Side chef', null, null, null, false)",
+      [created.id, branches.banani],
+      branchManager,
+    );
+    expect((await db.q("select is_active from public.branch_staff where id = $1", [created.id]))[0].is_active).toBe(false);
+    await expect(
+      db.as("authenticated", "insert into public.branch_staff (branch_id, full_name, job_title) values ($1, 'Direct Write', 'Waiter')", [branches.banani], branchManager),
+    ).rejects.toThrow(DENIED);
+  });
+
+  it("lets an owner manage staff records for any branch", async () => {
+    const [created] = await db.as<{ id: string }>(
+      "authenticated",
+      "select public.manager_upsert_branch_staff(null, $1, 'Nadia Rahman', 'Waiter', 'nadia@example.test', null, null, true) as id",
+      [branches["dhanmondi-6"]],
+      owner,
+    );
+    expect((await db.q("select branch_id, job_title from public.branch_staff where id = $1", [created.id]))[0]).toMatchObject({
+      branch_id: branches["dhanmondi-6"],
+      job_title: "Waiter",
+    });
   });
 });
 

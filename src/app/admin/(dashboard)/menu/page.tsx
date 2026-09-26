@@ -1,14 +1,16 @@
 import { AdminBody, PageHeader } from "@/components/admin/ui";
+import { BranchMenuComparison } from "@/components/admin/branch-menu-comparison";
 import { MenuManager } from "@/components/admin/menu-manager";
-import { requireManager } from "@/lib/auth";
-import { getMenuFresh } from "@/lib/data";
+import { requireOwner } from "@/lib/auth";
+import { getBranches, getMenuFresh, getMenu } from "@/lib/data";
 
 export const metadata = { title: "Menu" };
 
 export default async function AdminMenuPage() {
-  await requireManager();
-  // Straight from the database: staff always see the current menu, not the public cached copy.
-  const menu = await getMenuFresh();
+  await requireOwner();
+  // The owner edits the global defaults; manager overrides remain branch-specific.
+  const [menu, branches] = await Promise.all([getMenuFresh(), getBranches()]);
+  const branchMenus = await Promise.all(branches.map(async (branch) => ({ branch, menu: await getMenu(branch.id) })));
   return (
     <>
       <PageHeader
@@ -17,6 +19,7 @@ export default async function AdminMenuPage() {
       />
       <AdminBody>
         <MenuManager menu={menu} />
+        <BranchMenuComparison menu={menu} branches={branchMenus} />
       </AdminBody>
     </>
   );

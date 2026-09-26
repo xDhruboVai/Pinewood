@@ -9,13 +9,18 @@ import type { StaffRole } from "@/lib/types";
 // Staff only need two screens: bookings and the menu (Saalim, September 2026).
 const LINKS = [
   { href: "/admin/reservations", label: "Reservations", manager: false },
-  { href: "/admin/menu", label: "Menu", manager: true },
+  { href: "/admin/menu", label: "Global menu", ownerOnly: true },
+  { href: "/admin/staff", label: "Staff", manager: true },
+  { href: "/admin/managers", label: "Managers", manager: false, ownerOnly: true },
 ];
 
 /** The admin header: the same teal bar, badge logo and Montserrat links as the website's header. */
 export function AdminNav({ name, role }: { name: string; role: StaffRole }) {
   const pathname = usePathname();
-  const links = LINKS.filter((l) => !l.manager || role === "manager");
+  const links = LINKS.filter((l) => {
+    if (l.ownerOnly) return role === "owner";
+    return !l.manager || role === "manager" || role === "owner";
+  });
 
   return (
     <header className="grain grain-dark sticky top-0 z-40 bg-pine-700 text-cream-100">

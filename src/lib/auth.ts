@@ -9,6 +9,7 @@ export interface StaffSession {
   email: string;
   fullName: string;
   role: StaffRole;
+  branchId: string | null;
 }
 
 export const getStaff = cache(async (): Promise<StaffSession | null> => {
@@ -19,7 +20,7 @@ export const getStaff = cache(async (): Promise<StaffSession | null> => {
 
   const { data: profile } = await supabase
     .from("staff_profiles")
-    .select("full_name, role, is_active")
+    .select("full_name, role, branch_id, is_active")
     .eq("user_id", claims.sub)
     .maybeSingle();
 
@@ -29,6 +30,7 @@ export const getStaff = cache(async (): Promise<StaffSession | null> => {
     email: (claims.email as string | undefined) ?? "",
     fullName: profile.full_name,
     role: profile.role as StaffRole,
+    branchId: profile.branch_id ?? null,
   };
 });
 
@@ -40,6 +42,18 @@ export async function requireStaff() {
 
 export async function requireManager() {
   const staff = await requireStaff();
+  if (staff.role !== "manager" && staff.role !== "owner") redirect("/admin?error=forbidden");
+  return staff;
+}
+
+export async function requireBranchManager() {
+  const staff = await requireStaff();
   if (staff.role !== "manager") redirect("/admin?error=forbidden");
+  return staff;
+}
+
+export async function requireOwner() {
+  const staff = await requireStaff();
+  if (staff.role !== "owner") redirect("/admin?error=forbidden");
   return staff;
 }
