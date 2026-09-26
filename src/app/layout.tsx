@@ -88,6 +88,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html
       lang={locale}
+      data-scroll-behavior="smooth"
       data-ambiance="day"
       suppressHydrationWarning
       className={`${cormorant.variable} ${kaushan.variable} ${fira.variable} ${montserrat.variable} ${takaSerif.variable} ${takaSans.variable} ${bnSerif.variable} ${bnSans.variable}`}

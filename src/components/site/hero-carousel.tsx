@@ -184,6 +184,7 @@ export function HeroCarousel({
                 alt={s.alt}
                 fill
                 priority={i === 0}
+                loading={i === index ? "eager" : "lazy"}
                 draggable={false}
                 sizes="(min-width: 1024px) 75vw, 100vw"
                 quality={85}

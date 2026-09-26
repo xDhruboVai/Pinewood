@@ -370,27 +370,41 @@ const inviteSchema = z.object({
   fullName: z.string().trim().min(2).max(80),
   role: z.enum(["owner", "manager", "foh"]),
   branchId: z.string().uuid().nullable().optional(),
+  temporaryPassword: z.string().min(8).max(72).optional(),
 });
 
 export async function inviteStaff(input: unknown): Promise<ActionResult> {
   const auth = await staffCheck(true);
   if (!auth.ok) return auth;
   const parsed = inviteSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Please enter a name, a valid email and a role." };
+  if (!parsed.success) {
+    if (parsed.error.issues.some((issue) => issue.path[0] === "temporaryPassword")) {
+      return { ok: false, error: "Temporary password must be between 8 and 72 characters." };
+    }
+    return { ok: false, error: "Please enter a name, a valid email and a role." };
+  }
   if (parsed.data.role !== "foh" && auth.staff.role !== "owner") {
     return { ok: false, error: "Only owners can appoint managers or owners." };
   }
   if (parsed.data.role === "manager" && !parsed.data.branchId) {
     return { ok: false, error: "Choose the branch this manager will oversee." };
   }
+  if (parsed.data.role === "manager" && !parsed.data.temporaryPassword) {
+    return { ok: false, error: "Enter a temporary password for this manager." };
+  }
 
   const admin = createAdminClient();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  const loginPath = parsed.data.role === "manager" ? "/admin?invited=1&next=%2Fmanager" : "/admin?invited=1";
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(parsed.data.email, {
-    redirectTo: `${siteUrl}${loginPath}`,
-    data: { full_name: parsed.data.fullName },
-  });
+  const { data, error } = parsed.data.role === "manager"
+    ? await admin.auth.admin.createUser({
+        email: parsed.data.email,
+        password: parsed.data.temporaryPassword!,
+        email_confirm: true,
+        user_metadata: { full_name: parsed.data.fullName },
+      })
+    : await admin.auth.admin.inviteUserByEmail(parsed.data.email, {
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/admin?invited=1`,
+        data: { full_name: parsed.data.fullName },
+      });
   if (error || !data.user) return fail(error);
 
   const { error: profileError } = await admin

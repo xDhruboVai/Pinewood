@@ -7,7 +7,7 @@ import "./globals.css";
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   console.error("Root layout failed", error.digest ? `(digest ${error.digest})` : error);
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body className="grain flex min-h-dvh flex-col items-center justify-center bg-canvas px-6 text-center text-ink">
         <h1 className="display text-4xl">Something went wrong.</h1>
         <p className="mt-4 max-w-md text-ink-muted">We&apos;re having trouble loading this page. Please try again.</p>

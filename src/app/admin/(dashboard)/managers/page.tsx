@@ -1,18 +1,17 @@
-import { ManagerManager, type ManagerRow } from "@/components/admin/manager-manager";
-import { Button } from "@/components/ui/button";
+import { ManagerManager, type ManagerHistoryRow, type ManagerRow } from "@/components/admin/manager-manager";
 import { requireOwner } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/server";
-import Link from "next/link";
 
 export const metadata = { title: "Managers" };
 
 export default async function Page() {
   const me = await requireOwner();
   const admin = createAdminClient();
-  const [{ data: users }, { data: profiles }, { data: branches }] = await Promise.all([
+  const [{ data: users }, { data: profiles }, { data: branches }, { data: history }] = await Promise.all([
     admin.auth.admin.listUsers({ perPage: 1000 }),
-    admin.from("staff_profiles").select("user_id, full_name, role, branch_id, is_active").in("role", ["manager", "foh"]),
+    admin.from("staff_profiles").select("user_id, full_name, role, branch_id, is_active").in("role", ["manager", "foh"]).eq("is_active", true),
     admin.from("branches").select("id, name_en, name_bn, slug, is_active, sort_order").order("sort_order"),
+    admin.from("manager_history").select("id, staff_user_id, full_name, event, branch_name, actor_user_id, created_at").order("created_at", { ascending: false }).order("id", { ascending: false }).limit(100),
   ]);
 
   const usersById = new Map((users?.users ?? []).map((user) => [user.id, user]));
@@ -25,17 +24,20 @@ export default async function Page() {
       isMe: user?.id === me.userId,
     };
   });
+  const historyRows: ManagerHistoryRow[] = (history ?? []).map((entry) => ({
+    ...entry,
+    actor_name: usersById.get(entry.actor_user_id ?? "")?.email ?? "System",
+  }));
 
   return (
     <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8 lg:px-12">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div>
         <div>
           <p className="font-nav text-xs tracking-[0.18em] text-accent-ink uppercase">Admin</p>
           <h1 className="display mt-2 text-4xl text-ink">Managers</h1>
         </div>
-        <Button asChild variant="pine"><Link href="#add-manager">Add manager</Link></Button>
       </div>
-      <div className="mt-10"><ManagerManager rows={rows} branches={branches ?? []} /></div>
+      <div className="mt-10"><ManagerManager rows={rows} branches={branches ?? []} history={historyRows} /></div>
     </div>
   );
 }

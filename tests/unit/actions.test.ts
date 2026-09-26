@@ -9,7 +9,7 @@ const db = vi.hoisted(() => ({
   rows: {} as Record<string, unknown>,
   calls: [] as { table: string; op: string; args: unknown[] }[],
 }));
-const authAdmin = vi.hoisted(() => ({ inviteUserByEmail: vi.fn() }));
+const authAdmin = vi.hoisted(() => ({ inviteUserByEmail: vi.fn(), createUser: vi.fn() }));
 const jar = vi.hoisted(() => new Map<string, string>());
 const staff = vi.hoisted(() => ({ current: null as null | { userId: string; email: string; fullName: string; role: "owner" | "manager" | "foh"; branchId?: string | null } }));
 const cache = vi.hoisted(() => ({ updateTag: vi.fn(), revalidateTag: vi.fn(), revalidatePath: vi.fn() }));
@@ -30,7 +30,10 @@ function table(name: string) {
   return chain;
 }
 const client = {
-  auth: { admin: { inviteUserByEmail: (...args: unknown[]) => authAdmin.inviteUserByEmail(...args) } },
+  auth: { admin: {
+    inviteUserByEmail: (...args: unknown[]) => authAdmin.inviteUserByEmail(...args),
+    createUser: (...args: unknown[]) => authAdmin.createUser(...args),
+  } },
   rpc: (...a: unknown[]) => db.rpc(...a),
   from: (t: string) => table(t),
 };
@@ -65,6 +68,7 @@ beforeEach(() => {
   staff.current = null;
   cache.updateTag.mockReset();
   authAdmin.inviteUserByEmail.mockReset();
+  authAdmin.createUser.mockReset();
   process.env.RESERVATION_TOKEN_SECRET = SECRET;
 });
 
@@ -202,6 +206,46 @@ describe("admin actions: authorisation and validation", () => {
     expect(db.calls).toEqual([]);
   });
 
+  it("creates a manager account with the supplied temporary password", async () => {
+    staff.current = owner;
+    authAdmin.createUser.mockResolvedValue({ data: { user: { id: "22222222-2222-4222-8222-222222222222" } }, error: null });
+    const result = await admin.inviteStaff({
+      fullName: "Dihan Islam",
+      email: "manager@example.com",
+      role: "manager",
+      branchId: "33333333-3333-4333-8333-333333333333",
+      temporaryPassword: "temp-pass-123",
+    });
+    expect(result).toEqual({ ok: true, data: undefined });
+    expect(authAdmin.createUser).toHaveBeenCalledWith({
+      email: "manager@example.com",
+      password: "temp-pass-123",
+      email_confirm: true,
+      user_metadata: { full_name: "Dihan Islam" },
+    });
+    expect(db.calls.find((call) => call.table === "staff_profiles")?.args[0]).toMatchObject({
+      role: "manager",
+      branch_id: "33333333-3333-4333-8333-333333333333",
+    });
+    expect(authAdmin.inviteUserByEmail).not.toHaveBeenCalled();
+  });
+
+  it("requires a temporary password before creating a manager account", async () => {
+    staff.current = owner;
+    const details = {
+      fullName: "Dihan Islam",
+      email: "manager@example.com",
+      role: "manager",
+      branchId: "33333333-3333-4333-8333-333333333333",
+    };
+    expect(await admin.inviteStaff(details)).toEqual({ ok: false, error: "Enter a temporary password for this manager." });
+    expect(await admin.inviteStaff({ ...details, temporaryPassword: "short" })).toEqual({
+      ok: false,
+      error: "Temporary password must be between 8 and 72 characters.",
+    });
+    expect(authAdmin.createUser).not.toHaveBeenCalled();
+  });
+
   it("lets front-of-house staff change a booking's status", async () => {
     staff.current = foh;
     db.rpc.mockResolvedValue({ data: null, error: null });
@@ -304,18 +348,18 @@ describe("admin actions: authorisation and validation", () => {
     }));
   });
 
-  it("sends manager invitations to the shared login with a manager destination", async () => {
+  it("sends front-of-house invitations to the shared login", async () => {
     staff.current = owner;
     authAdmin.inviteUserByEmail.mockResolvedValue({ data: { user: { id: "66666666-6666-4666-8666-666666666666" } }, error: null });
     const result = await admin.inviteStaff({
       email: "manager@example.test",
       fullName: "Branch Manager",
-      role: "manager",
-      branchId: "33333333-3333-4333-8333-333333333333",
+      role: "foh",
+      branchId: null,
     });
     expect(result).toEqual({ ok: true, data: undefined });
     expect(authAdmin.inviteUserByEmail).toHaveBeenCalledWith("manager@example.test", expect.objectContaining({
-      redirectTo: expect.stringMatching(/\/admin\?invited=1&next=%2Fmanager$/),
+      redirectTo: expect.stringMatching(/\/admin\?invited=1$/),
     }));
   });
 

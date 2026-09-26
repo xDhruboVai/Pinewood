@@ -59,6 +59,7 @@ export function LoginForm({ next }: { next: string }) {
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? "Signing in…" : "Sign in"}
       </Button>
+      <p className="text-center text-xs text-ink-muted">Using a temporary password? Choose Forgot password to set your own.</p>
       <button type="button" onClick={forgot} className="w-full text-center text-xs text-ink-muted hover:text-ink">
         Forgot password
       </button>

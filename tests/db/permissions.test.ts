@@ -254,6 +254,32 @@ describe("branch staff directory", () => {
   });
 });
 
+describe("manager history", () => {
+  it("records the appointment branch and removal when an owner revokes manager access", async () => {
+    const account = await staffUser(db, null);
+    await db.q(
+      "insert into public.staff_profiles (user_id, full_name, role, branch_id, is_active) values ($1, 'Test Manager', 'manager', $2, true)",
+      [account, branches.banani],
+    );
+    await db.as(
+      "authenticated",
+      "select public.admin_update_staff($1, 'foh'::public.staff_role, false, null, true)",
+      [account],
+      owner,
+    );
+
+    const rows = await db.q<{ event: string; full_name: string; branch_name: string; actor_user_id: string | null }>(
+      "select event, full_name, branch_name, actor_user_id from public.manager_history where staff_user_id = $1 order by id",
+      [account],
+    );
+    expect(rows).toHaveLength(2);
+    expect(rows.map((row) => row.event)).toEqual(["appointed", "removed"]);
+    expect(rows.map((row) => row.branch_name)).toEqual(["Banani", "Banani"]);
+    expect(rows.every((row) => row.full_name === "Test Manager")).toBe(true);
+    expect(rows[1].actor_user_id).toBe(owner);
+  });
+});
+
 describe("deleting a booking", () => {
   const del = (id: string, user: string) => db.as("authenticated", "select public.admin_delete_reservation($1)", [id], user);
   const exists = async (id: string) => (await db.q("select 1 from public.reservations where id = $1", [id])).length === 1;
