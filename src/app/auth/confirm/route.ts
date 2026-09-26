@@ -9,7 +9,9 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type") as EmailOtpType | null;
   const code = searchParams.get("code");
   const nextParam = searchParams.get("next") ?? "/admin";
-  const next = nextParam.startsWith("/admin") ? nextParam : "/admin";
+  const next = nextParam === "/admin" || nextParam.startsWith("/admin/") || nextParam === "/manager" || nextParam.startsWith("/manager/")
+    ? nextParam
+    : "/admin";
 
   const supabase = await createClient();
 
@@ -21,5 +23,5 @@ export async function GET(request: NextRequest) {
     if (!error) return NextResponse.redirect(`${origin}${next}`);
   }
 
-  return NextResponse.redirect(`${origin}/admin/login?error=link`);
+  return NextResponse.redirect(`${origin}/admin?error=link`);
 }

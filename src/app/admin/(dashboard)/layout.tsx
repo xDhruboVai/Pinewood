@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const staff = await requireStaff();
   if (staff.role === "manager") redirect("/manager");
-  if (staff.role !== "owner") redirect("/admin/login?error=forbidden");
+  if (staff.role !== "owner") redirect("/admin?error=forbidden");
 
   return (
     <div className="min-h-dvh">

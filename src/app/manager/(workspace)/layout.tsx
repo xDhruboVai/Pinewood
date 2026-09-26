@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import { ManagerNav } from "@/components/admin/manager-nav";
-import { requireStaff } from "@/lib/auth";
+import { getStaff } from "@/lib/auth";
 
 export default async function ManagerLayout({ children }: { children: React.ReactNode }) {
-  const staff = await requireStaff();
+  const staff = await getStaff();
+  if (!staff) redirect("/admin?next=%2Fmanager");
   if (staff.role !== "manager") redirect("/admin");
 
   return (

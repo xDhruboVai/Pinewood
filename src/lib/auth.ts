@@ -36,7 +36,7 @@ export const getStaff = cache(async (): Promise<StaffSession | null> => {
 
 export async function requireStaff() {
   const staff = await getStaff();
-  if (!staff) redirect("/admin/login?error=not_staff");
+  if (!staff) redirect("/admin");
   return staff;
 }
 

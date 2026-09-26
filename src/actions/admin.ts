@@ -319,7 +319,7 @@ export async function updateBranchMenuItem(
   if (error) return fail(error);
   updateTag(CACHE_TAGS.menu);
   revalidatePath("/menu");
-  revalidatePath("/admin/branch-menu");
+  revalidatePath("/manager/menu");
   return { ok: true, data: undefined };
 }
 
@@ -386,8 +386,9 @@ export async function inviteStaff(input: unknown): Promise<ActionResult> {
 
   const admin = createAdminClient();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const loginPath = parsed.data.role === "manager" ? "/admin?invited=1&next=%2Fmanager" : "/admin?invited=1";
   const { data, error } = await admin.auth.admin.inviteUserByEmail(parsed.data.email, {
-    redirectTo: `${siteUrl}/admin/login?invited=1`,
+    redirectTo: `${siteUrl}${loginPath}`,
     data: { full_name: parsed.data.fullName },
   });
   if (error || !data.user) return fail(error);
@@ -447,5 +448,5 @@ export async function updateStaffMember(userId: string, patch: { role?: StaffRol
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/admin/login");
+  redirect("/admin");
 }

@@ -1,6 +1,8 @@
 import { ManagerManager, type ManagerRow } from "@/components/admin/manager-manager";
+import { Button } from "@/components/ui/button";
 import { requireOwner } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/server";
+import Link from "next/link";
 
 export const metadata = { title: "Managers" };
 
@@ -26,8 +28,13 @@ export default async function Page() {
 
   return (
     <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8 lg:px-12">
-      <p className="font-nav text-xs tracking-[0.18em] text-accent-ink uppercase">Admin</p>
-      <h1 className="display mt-2 text-4xl text-ink">Managers</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="font-nav text-xs tracking-[0.18em] text-accent-ink uppercase">Admin</p>
+          <h1 className="display mt-2 text-4xl text-ink">Managers</h1>
+        </div>
+        <Button asChild variant="pine"><Link href="#add-manager">Add manager</Link></Button>
+      </div>
       <div className="mt-10"><ManagerManager rows={rows} branches={branches ?? []} /></div>
     </div>
   );

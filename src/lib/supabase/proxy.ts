@@ -26,7 +26,7 @@ export async function updateSession(request: NextRequest) {
   const isLoggedIn = Boolean(data?.claims?.sub);
 
   const { pathname } = request.nextUrl;
-  const isLogin = pathname === "/admin/login";
+  const isLogin = pathname === "/admin";
 
   // A server action sent from an admin page after the session ended (Next-Action header) goes through,
   // so the action itself answers "Your session has ended" (every admin action checks the session and
@@ -36,7 +36,7 @@ export async function updateSession(request: NextRequest) {
 
   if (!isLoggedIn && !isLogin && !isServerAction) {
     const url = request.nextUrl.clone();
-    url.pathname = "/admin/login";
+    url.pathname = "/admin";
     url.search = "";
     if (pathname !== "/admin") url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);

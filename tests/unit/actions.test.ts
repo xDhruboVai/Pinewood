@@ -9,6 +9,7 @@ const db = vi.hoisted(() => ({
   rows: {} as Record<string, unknown>,
   calls: [] as { table: string; op: string; args: unknown[] }[],
 }));
+const authAdmin = vi.hoisted(() => ({ inviteUserByEmail: vi.fn() }));
 const jar = vi.hoisted(() => new Map<string, string>());
 const staff = vi.hoisted(() => ({ current: null as null | { userId: string; email: string; fullName: string; role: "owner" | "manager" | "foh"; branchId?: string | null } }));
 const cache = vi.hoisted(() => ({ updateTag: vi.fn(), revalidateTag: vi.fn(), revalidatePath: vi.fn() }));
@@ -28,7 +29,11 @@ function table(name: string) {
   chain.then = (resolve: (v: unknown) => unknown) => resolve(result());
   return chain;
 }
-const client = { rpc: (...a: unknown[]) => db.rpc(...a), from: (t: string) => table(t) };
+const client = {
+  auth: { admin: { inviteUserByEmail: (...args: unknown[]) => authAdmin.inviteUserByEmail(...args) } },
+  rpc: (...a: unknown[]) => db.rpc(...a),
+  from: (t: string) => table(t),
+};
 
 vi.mock("@/lib/supabase/server", () => ({
   createAdminClient: () => client,
@@ -59,6 +64,7 @@ beforeEach(() => {
   jar.clear();
   staff.current = null;
   cache.updateTag.mockReset();
+  authAdmin.inviteUserByEmail.mockReset();
   process.env.RESERVATION_TOKEN_SECRET = SECRET;
 });
 
@@ -295,6 +301,21 @@ describe("admin actions: authorisation and validation", () => {
       p_role: "manager",
       p_branch_id: "33333333-3333-4333-8333-333333333333",
       p_set_branch: true,
+    }));
+  });
+
+  it("sends manager invitations to the shared login with a manager destination", async () => {
+    staff.current = owner;
+    authAdmin.inviteUserByEmail.mockResolvedValue({ data: { user: { id: "66666666-6666-4666-8666-666666666666" } }, error: null });
+    const result = await admin.inviteStaff({
+      email: "manager@example.test",
+      fullName: "Branch Manager",
+      role: "manager",
+      branchId: "33333333-3333-4333-8333-333333333333",
+    });
+    expect(result).toEqual({ ok: true, data: undefined });
+    expect(authAdmin.inviteUserByEmail).toHaveBeenCalledWith("manager@example.test", expect.objectContaining({
+      redirectTo: expect.stringMatching(/\/admin\?invited=1&next=%2Fmanager$/),
     }));
   });
 

@@ -88,7 +88,7 @@ export function ManagerManager({ rows, branches }: { rows: ManagerRow[]; branche
         </div>
       </section>
 
-      <section className="lg:col-span-4">
+      <section id="add-manager" className="scroll-mt-28 lg:col-span-4">
         <h2 className="display text-3xl text-ink">Appoint a manager</h2>
         <p className="mt-1 text-sm text-ink-muted">They&apos;ll receive an email invitation to set their password.</p>
         <form
